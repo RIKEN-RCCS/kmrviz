@@ -6,12 +6,13 @@ kv_global_state_t GS[1];
 
 void
 kv_viewport_init(kv_viewport_t * VP) {
+  memset(VP, 0, sizeof(kv_viewport_t));
   GdkRGBA white[1];
   gdk_rgba_parse(white, "white");
 
   /* width, height */
   VP->vpw = VP->vph = 0.0;
-  VP->x = VP->y = 0.0;
+  VP->x = VP->y = KV_MARGIN_WHEN_ZOOMFIT;
   
   /* Box */
   VP->box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -30,6 +31,9 @@ kv_viewport_init(kv_viewport_t * VP) {
   g_signal_connect(G_OBJECT(darea), "motion-notify-event", G_CALLBACK(on_darea_motion_event), (void *) VP);
   g_signal_connect(G_OBJECT(darea), "configure-event", G_CALLBACK(on_darea_configure_event), (void *) VP);
   g_signal_connect(G_OBJECT(darea), "key-press-event", G_CALLBACK(on_darea_key_press_event), (void *) VP);
+
+  /* zoom ratios */
+  VP->zoom_ratio_x = VP->zoom_ratio_y = 1.0;
 }
 
 void
@@ -39,14 +43,16 @@ kv_viewport_queue_draw(kv_viewport_t * VP) {
 
 static double
 kv_scale_down(double t) {
-  return t / 1E7;
+  return t / 1E8;
 }
 
 void
-kv_viewport_draw(_unused_ kv_viewport_t * VP, cairo_t * cr) {
+kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
   kv_trace_set_t * ts = GS->ts;
   printf("duration %.0lf\n", ts->end_t - ts->start_t);
   cairo_save(cr);
+  cairo_translate(cr, VP->x, VP->y);
+  cairo_scale(cr, VP->zoom_ratio_x, VP->zoom_ratio_y);
   
   /* Rank numbers */
   {
@@ -292,6 +298,7 @@ main(int argc, char * argv[]) {
 
   /* Open GUI */
   kv_open_gui(argc, argv);
+  gtk_widget_grab_focus(GS->VP->darea);
   gtk_main();
   return 1;
 }

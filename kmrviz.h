@@ -31,6 +31,9 @@
 
 #define KV_STRING_LENGTH 100
 #define KV_RADIUS 10
+#define KV_MARGIN_WHEN_ZOOMFIT 15
+#define KV_SAFE_CLICK_RANGE 2
+#define KV_ZOOM_INCREMENT 1.20
 
 /*-- Copy from kmrtrace.h --*/
 typedef enum {
@@ -73,6 +76,10 @@ typedef struct kv_viewport {
   GtkWidget * box;
   GtkWidget * darea;
   double x, y;
+  double zoom_ratio_x, zoom_ratio_y;
+  int drag_on;
+  double pressx, pressy;
+  double accdisx, accdisy;
 } kv_viewport_t;
 
 typedef struct kv_gui {

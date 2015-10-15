@@ -29,6 +29,8 @@
 #define _unused_ __attribute__((unused))
 #define _static_unused_ static __attribute__((unused))
 
+#define KV_STRING_LENGTH 100
+#define KV_RADIUS 10
 
 /*-- Copy from kmrtrace.h --*/
 typedef enum {
@@ -59,6 +61,13 @@ typedef struct kv_trace {
   kv_trace_entry_t * e;
 } kv_trace_t;
 
+typedef struct kv_trace_set {
+  int n;
+  kv_trace_t * traces;
+  double start_t;
+  double end_t;
+} kv_trace_set_t;
+
 typedef struct kv_viewport {
   double vpw, vph;
   GtkWidget * box;
@@ -85,8 +94,7 @@ typedef struct kv_gui {
 typedef struct kv_global_state {
   kv_gui_t GUI[1];
   kv_viewport_t VP[1];
-  int ntraces;
-  kv_trace_t * traces;
+  kv_trace_set_t ts[1];
 } kv_global_state_t;
 
 

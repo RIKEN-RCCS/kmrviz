@@ -37,16 +37,51 @@ kv_viewport_queue_draw(kv_viewport_t * VP) {
   gtk_widget_queue_draw(VP->darea);
 }
 
+static double
+kv_scale_down(double t) {
+  return t / 1E7;
+}
+
 void
-kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
+kv_viewport_draw(_unused_ kv_viewport_t * VP, cairo_t * cr) {
+  kv_trace_set_t * ts = GS->ts;
+  printf("duration %.0lf\n", ts->end_t - ts->start_t);
   cairo_save(cr);
-  double x = 20;
-  double y = VP->vph - 2 * 20;
-  double r = 10 / 2;
-  cairo_arc(cr, x + r, y + r, r, 0.0, 2 * M_PI);
-  cairo_close_path(cr);
-  cairo_set_source_rgb(cr, 1.0, 0.0, 0.0);
-  cairo_fill(cr);
+  
+  /* Rank numbers */
+  {
+    cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+    cairo_select_font_face(cr, "Courier", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 12);
+    char s[KV_STRING_LENGTH];
+    double x, y;
+    x = 0;
+    y = KV_RADIUS * 1.2;
+    int i;
+    for (i = 0; i < ts->n; i++) {
+      sprintf(s, "Rank %d", ts->traces[i].rank);
+      cairo_move_to(cr, x, y);
+      cairo_show_text(cr, s);
+      y += 2 * KV_RADIUS;
+    }
+
+    /* Lines */
+    {
+      cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+      int i;
+      for (i = 0; i < ts->n; i++) {
+        kv_trace_t * trace = &ts->traces[i];
+        double x = 55;
+        double y = KV_RADIUS + i * 2 * KV_RADIUS;
+        double w = kv_scale_down(trace->end_t - trace->start_t);
+        cairo_move_to(cr, x, y);
+        cairo_line_to(cr, x + w, y);
+        cairo_stroke(cr);
+      }
+    }
+  }
+
+  
   cairo_restore(cr);
 }
 
@@ -147,8 +182,6 @@ kv_global_state_init(kv_global_state_t * GS) {
   memset(GS, 0, sizeof(kv_global_state_t));
   kv_gui_init(GS->GUI);
   kv_viewport_init(GS->VP);
-  GS->ntraces = 0;
-  GS->traces = NULL;
 }
 
 static void
@@ -215,15 +248,35 @@ kv_read_trace(char * filename, kv_trace_t * kt) {
 }
 
 static void
-kv_read_traces(int argc, char * argv[]) {
-  GS->traces = (kv_trace_t *) malloc( (argc - 1) * sizeof(kv_trace_t) );
-  GS->ntraces = 0;
+kv_read_traces(int argc, char * argv[], kv_trace_set_t * ts) {
+  /* read traces */
+  ts->traces = (kv_trace_t *) malloc( (argc - 1) * sizeof(kv_trace_t) );
+  ts->n = 0;
   int i;
   for (i = 1; i < argc; i++) {
-    if (kv_read_trace(argv[i], &GS->traces[GS->ntraces]))
-      GS->ntraces++;
+    if (kv_read_trace(argv[i], &ts->traces[ts->n]))
+      ts->n++;
   }
-  printf("ntraces = %d\n", GS->ntraces);
+  printf("ntraces = %d\n", ts->n);
+  
+  /* find min start_t, max end_t */
+  ts->start_t = -1;
+  ts->end_t = 0;
+  for (i = 0; i < ts->n; i++) {
+    if (ts->start_t < 0 || ts->traces[i].start_t < ts->start_t)
+      ts->start_t = ts->traces[i].start_t;
+    if (ts->traces[i].end_t > ts->end_t)
+      ts->end_t = ts->traces[i].end_t;
+  }
+
+  /* adjust all t based on ts->start_t */
+  for (i = 0; i < ts->n; i++) {
+    ts->traces[i].start_t -= ts->start_t;
+    ts->traces[i].end_t -= ts->start_t;
+    int j;
+    for (j = 0; j < ts->traces[i].n; j++)      
+      ts->traces[i].e[j].t -= ts->start_t;
+  }  
 }
 
 int
@@ -235,7 +288,7 @@ main(int argc, char * argv[]) {
   kv_global_state_init(GS);
 
   /* Data */
-  kv_read_traces(argc, argv);
+  kv_read_traces(argc, argv, GS->ts);
 
   /* Open GUI */
   kv_open_gui(argc, argv);

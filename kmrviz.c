@@ -147,6 +147,8 @@ kv_global_state_init(kv_global_state_t * GS) {
   memset(GS, 0, sizeof(kv_global_state_t));
   kv_gui_init(GS->GUI);
   kv_viewport_init(GS->VP);
+  GS->ntraces = 0;
+  GS->traces = NULL;
 }
 
 static void
@@ -162,6 +164,68 @@ kv_open_gui(_unused_ int argc, _unused_ char * argv[]) {
   gtk_widget_show_all(window);
 }
 
+static int
+kv_read_trace(char * filename, kv_trace_t * kt) {
+  int fd = open(filename, O_RDONLY);
+  if (fd < 0) {
+    fprintf(stderr, "open: %d\n", errno);
+    return 0;
+  }
+  struct stat statbuf[1];
+  int err = fstat(fd, statbuf);
+  if (err < 0) {
+    fprintf(stderr, "fstat: %d\n", errno);
+    return 0;    
+  }
+  printf("Trace %s:\n", filename);
+  printf("  st_size = %ld bytes (%0.0lfMB)\n",
+         (long) statbuf->st_size,
+         ((double) statbuf->st_size) / (1024.0 * 1024.0));
+
+  void * dp = mmap(0, statbuf->st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (!dp) {
+    fprintf(stderr, "mmap: error\n");
+    return 0;
+  }
+  kt->rank = *((int *) dp);
+  dp += sizeof(int);
+  kt->start_t = *((double *) dp);
+  dp += sizeof(double);
+  kt->end_t = *((double *) dp);
+  dp += sizeof(double);
+  kt->n = *((long *) dp);
+  dp += sizeof(long);
+  printf("  rank=%d\n"
+         "  start_t=%21.0lf\n"
+         "  end_t  =%21.0lf\n"
+         "  n=%ld\n",
+         kt->rank, kt->start_t, kt->end_t, kt->n);
+  kt->e = (kv_trace_entry_t *) malloc( kt->n * sizeof(kv_trace_entry_t) );
+  int i;
+  for (i = 0; i < kt->n; i++) {
+    kt->e[i].t = *((double *) dp);
+    dp += sizeof(double);
+    kt->e[i].e = *((int *) dp);
+    dp += sizeof(int);
+    if (i == 0 || i == kt->n - 1)
+      printf("  e[%d]=(%21.0lf,%d)\n",
+             i, kt->e[i].t, kt->e[i].e);
+  }
+  return 1;
+}
+
+static void
+kv_read_traces(int argc, char * argv[]) {
+  GS->traces = (kv_trace_t *) malloc( (argc - 1) * sizeof(kv_trace_t) );
+  GS->ntraces = 0;
+  int i;
+  for (i = 1; i < argc; i++) {
+    if (kv_read_trace(argv[i], &GS->traces[GS->ntraces]))
+      GS->ntraces++;
+  }
+  printf("ntraces = %d\n", GS->ntraces);
+}
+
 int
 main(int argc, char * argv[]) {
   /* GTK */
@@ -170,7 +234,8 @@ main(int argc, char * argv[]) {
   /* GS */
   kv_global_state_init(GS);
 
-  /* Draw */
+  /* Data */
+  kv_read_traces(argc, argv);
 
   /* Open GUI */
   kv_open_gui(argc, argv);

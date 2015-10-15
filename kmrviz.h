@@ -18,9 +18,46 @@
 #include <cairo-ps.h>
 #include <cairo-svg.h>
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <execinfo.h>
+
 
 #define _unused_ __attribute__((unused))
 #define _static_unused_ static __attribute__((unused))
+
+
+/*-- Copy from kmrtrace.h --*/
+typedef enum {
+  kmr_trace_event_map_start, /* map phase starts */
+  kmr_trace_event_map_end, /* map phase ends */
+  kmr_trace_event_shuffle_start,
+  kmr_trace_event_shuffle_end,
+  kmr_trace_event_reduce_start,
+  kmr_trace_event_reduce_end,
+  
+  kmr_trace_event_mapper_start,
+  kmr_trace_event_mapper_end,
+  kmr_trace_event_reducer_start,
+  kmr_trace_event_reducer_end,
+} kmr_trace_event_t;
+/*--------*/
+
+typedef struct kv_trace_entry {
+  double t;
+  int e;
+} kv_trace_entry_t;
+
+typedef struct kv_trace {
+  int rank;
+  double start_t;
+  double end_t;
+  long n;
+  kv_trace_entry_t * e;
+} kv_trace_t;
 
 typedef struct kv_viewport {
   double vpw, vph;
@@ -48,6 +85,8 @@ typedef struct kv_gui {
 typedef struct kv_global_state {
   kv_gui_t GUI[1];
   kv_viewport_t VP[1];
+  int ntraces;
+  kv_trace_t * traces;
 } kv_global_state_t;
 
 
@@ -61,6 +100,7 @@ void kv_viewport_draw(kv_viewport_t *, cairo_t *);
 
 void kv_gui_init(kv_gui_t *);
 GtkWidget * kv_gui_get_main_window(kv_gui_t *);
+
 void kv_global_state_init(kv_global_state_t *);
 
 

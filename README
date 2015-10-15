@@ -1,0 +1,15 @@
+======
+kmrviz
+======
+
+KMRViz is a visualization tool intended to visualize a trace of a KMR program
+as timelines of nodes (ranks).
+
+=============
+Prerequisites
+=============
+
+KMRViz is dependant on:
+
+- libgtk (GTK+): a GUI toolkit
+  Ubuntu 14.04: libgtk-3-dev package

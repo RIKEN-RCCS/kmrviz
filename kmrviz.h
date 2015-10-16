@@ -34,7 +34,7 @@
 #define KV_MARGIN_WHEN_ZOOMFIT 15
 #define KV_SAFE_CLICK_RANGE 2
 #define KV_ZOOM_INCREMENT 1.20
-#define KV_LINE_WIDTH 2.5
+#define KV_LINE_WIDTH 2.0
 #define KV_NUM_COLORS 34
 #define KV_GAP_BETWEEN_TIMELINES 2
 #define KV_TIMELINE_START_X 55
@@ -94,6 +94,7 @@ typedef struct kv_gui {
   GtkWidget * menubar;
   GtkWidget * toolbar;
   GtkWidget * main_box;
+  GtkWidget * left_sidebar;
   GtkWidget * statusbar1;
   GtkWidget * statusbar2;
   GtkWidget * statusbar3;
@@ -101,6 +102,11 @@ typedef struct kv_gui {
   /* Utilities */
   GtkAccelGroup * accel_group;  
   GtkBuilder * builder;
+
+  /* Sideboxes */
+  struct toolbox {
+    GtkWidget * sidebox;
+  } toolbox;
 } kv_gui_t;
 
 typedef struct kv_global_state {
@@ -117,9 +123,14 @@ extern const char * const KV_COLORS[];
 /* kmrviz.c */
 void kv_viewport_init(kv_viewport_t *);
 void kv_viewport_queue_draw(kv_viewport_t *);
+double kv_viewport_clip_get_bound_left(kv_viewport_t *);
+double kv_viewport_clip_get_bound_right(kv_viewport_t *);
+double kv_viewport_clip_get_bound_up(kv_viewport_t *);
+double kv_viewport_clip_get_bound_down(kv_viewport_t *);
 
 void kv_gui_init(kv_gui_t *);
 GtkWidget * kv_gui_get_main_window(kv_gui_t *);
+GtkWidget * kv_gui_get_toolbox_sidebox(kv_gui_t *);
 
 void kv_global_state_init(kv_global_state_t *);
 

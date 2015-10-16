@@ -16,18 +16,20 @@ kv_zoom(kv_viewport_t * VP, double new_zrx, double new_zry, double posx, double 
 static void
 kv_zoomfit_hor_(kv_viewport_t * VP, double * zrx, double * zry, double * myx, double * myy) {
   double w = VP->vpw;
-  double h = VP->vph;
   double zoom_ratio = 1.0;
   double x = KV_MARGIN_WHEN_ZOOMFIT;
   double y = KV_MARGIN_WHEN_ZOOMFIT;
-  double d1, d2, dh;
+  double d1, d2;
   d1 = KV_TIMELINE_START_X + kv_scale_down(GS->ts->t_span);
   d2 = w - 2 * KV_MARGIN_WHEN_ZOOMFIT;
   if (d1 > d2)
     zoom_ratio = d2 / d1;
-  dh = 2 * KV_RADIUS + GS->ts->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
+  /*
+  double h = VP->vph;
+  double dh = 2 * KV_RADIUS + GS->ts->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
   if (h > dh * zoom_ratio)
     y += (h - dh * zoom_ratio) * 0.4;
+  */
   *zrx = *zry  = zoom_ratio;
   *myx = x;
   *myy = y;
@@ -104,8 +106,14 @@ on_window_key_event(_unused_ GtkWidget * widget, GdkEvent * event, _unused_ gpoi
 }
 
 static void
-on_toolbar_toolbox_button_clicked(_unused_ GtkToolButton * toolbtn, _unused_ gpointer user_data) {
-  //kv_do_zoomfit();
+on_toolbar_toolbox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unused_ gpointer user_data) {
+  GtkWidget * sidebox = kv_gui_get_toolbox_sidebox(GS->GUI);
+  gboolean active = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(toolbtn));
+  if (active) {
+    gtk_box_pack_start(GTK_BOX(GS->GUI->left_sidebar), sidebox, FALSE, FALSE, 0);
+  } else {
+    gtk_container_remove(GTK_CONTAINER(GS->GUI->left_sidebar), sidebox);
+  }
 }
 
 static void

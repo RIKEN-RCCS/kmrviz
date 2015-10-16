@@ -50,6 +50,26 @@ kv_viewport_queue_draw(kv_viewport_t * VP) {
   gtk_widget_queue_draw(VP->darea);
 }
 
+double
+kv_viewport_clip_get_bound_left(kv_viewport_t * VP) {
+  return (0 - VP->x) / VP->zoom_ratio_x;
+}
+
+double
+kv_viewport_clip_get_bound_right(kv_viewport_t * VP) {
+  return (VP->vpw - VP->x) / VP->zoom_ratio_x;
+}
+
+double
+kv_viewport_clip_get_bound_up(kv_viewport_t * VP) {
+  return (0 - VP->y) / VP->zoom_ratio_y;
+}
+
+double
+kv_viewport_clip_get_bound_down(kv_viewport_t * VP) {
+  return (VP->vph - VP->y) / VP->zoom_ratio_y;
+}
+
 void
 kv_gui_init(kv_gui_t * GUI) {
   memset(GUI, 0, sizeof(kv_gui_t));
@@ -101,11 +121,12 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     
     /* settings button */
     {
-      GtkToolItem * btn_settings = gtk_tool_button_new(NULL, NULL);
+      GtkToolItem * btn_settings = gtk_toggle_tool_button_new();
       gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_settings, -1);
       gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_settings), "preferences-system");
       gtk_widget_set_tooltip_text(GTK_WIDGET(btn_settings), "Show toolbox");
-      g_signal_connect(G_OBJECT(btn_settings), "clicked", G_CALLBACK(on_toolbar_toolbox_button_clicked), NULL);
+      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn_settings), FALSE);
+      g_signal_connect(G_OBJECT(btn_settings), "toggled", G_CALLBACK(on_toolbar_toolbox_button_toggled), NULL);
     }
 
     /* zoomfit button */
@@ -123,6 +144,8 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
   {
     GtkWidget * main_box = GUI->main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(window_box), main_box, TRUE, TRUE, 0);
+    GtkWidget * left_sidebar = GUI->left_sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+    gtk_box_pack_start(GTK_BOX(GUI->main_box), left_sidebar, FALSE, FALSE, 0);
   }
 
   /* Statusbars */
@@ -150,6 +173,17 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
   }
 
   return window;
+}
+
+GtkWidget *
+kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
+  if (GUI->toolbox.sidebox)
+    return GUI->toolbox.sidebox;
+  GtkWidget * sidebox = GUI->toolbox.sidebox = gtk_frame_new("Toolbox");
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
+  g_object_ref(sidebox);  
+  gtk_widget_show_all(sidebox);
+  return sidebox;
 }
 
 void

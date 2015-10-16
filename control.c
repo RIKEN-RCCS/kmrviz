@@ -37,6 +37,11 @@ on_window_key_event(_unused_ GtkWidget * widget, GdkEvent * event, _unused_ gpoi
 }
 
 static void
+on_toolbar_toolbox_button_clicked(_unused_ GtkToolButton * toolbtn, _unused_ gpointer user_data) {
+  //kv_do_zoomfit();
+}
+
+static void
 on_toolbar_zoomfit_button_clicked(_unused_ GtkToolButton * toolbtn, _unused_ gpointer user_data) {
   //kv_do_zoomfit();
 }

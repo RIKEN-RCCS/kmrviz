@@ -37,6 +37,7 @@
 #define KV_LINE_WIDTH 2.5
 #define KV_NUM_COLORS 34
 #define KV_GAP_BETWEEN_TIMELINES 2
+#define KV_TIMELINE_START_X 55
 
 /*-- Copy from kmrtrace.h --*/
 typedef enum {
@@ -72,6 +73,7 @@ typedef struct kv_trace_set {
   kv_trace_t * traces;
   double start_t;
   double end_t;
+  double t_span;
 } kv_trace_set_t;
 
 typedef struct kv_viewport {

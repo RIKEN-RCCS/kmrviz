@@ -99,8 +99,18 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     GtkWidget * toolbar = GUI->toolbar = gtk_toolbar_new();
     gtk_box_pack_start(GTK_BOX(window_box), toolbar, FALSE, FALSE, 0);
     
-    /* zoomfit */
+    /* settings button */
+    {
+      GtkToolItem * btn_settings = gtk_tool_button_new(NULL, NULL);
+      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_settings, -1);
+      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_settings), "preferences-system");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_settings), "Show toolbox");
+      g_signal_connect(G_OBJECT(btn_settings), "clicked", G_CALLBACK(on_toolbar_toolbox_button_clicked), NULL);
+    }
+
+    /* zoomfit button */
     {      
+      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
       GtkToolItem * btn_zoomfit = gtk_tool_button_new(NULL, NULL);
       gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_zoomfit, -1);
       gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_zoomfit), "zoom-fit-best");
@@ -227,11 +237,15 @@ kv_read_traces(int argc, char * argv[], kv_trace_set_t * ts) {
   /* find min start_t, max end_t */
   ts->start_t = -1;
   ts->end_t = 0;
+  ts->t_span = 0;
   for (i = 0; i < ts->n; i++) {
-    if (ts->start_t < 0 || ts->traces[i].start_t < ts->start_t)
-      ts->start_t = ts->traces[i].start_t;
-    if (ts->traces[i].end_t > ts->end_t)
-      ts->end_t = ts->traces[i].end_t;
+    kv_trace_t * trace = &ts->traces[i];
+    if (ts->start_t < 0 || trace->start_t < ts->start_t)
+      ts->start_t = trace->start_t;
+    if (trace->end_t > ts->end_t)
+      ts->end_t = trace->end_t;
+    if (trace->end_t - trace->start_t > ts->t_span)
+      ts->t_span = trace->end_t - trace->start_t;
   }
   printf("min start=%.0lf\nmax end  =%.0lf\n", ts->start_t, ts->end_t);
 
@@ -259,6 +273,13 @@ main(int argc, char * argv[]) {
   /* Open GUI */
   kv_open_gui(argc, argv);
   gtk_widget_grab_focus(GS->VP->darea);
+  char s[KV_STRING_LENGTH];
+  sprintf(s, "Ranks: %d", GS->ts->n);
+  gtk_statusbar_push(GTK_STATUSBAR(GS->GUI->statusbar3), 0, s);
+  sprintf(s, "Span: %.0lf ns", GS->ts->t_span);
+  gtk_statusbar_push(GTK_STATUSBAR(GS->GUI->statusbar2), 0, s);
+
+  /* Run */
   gtk_main();
   return 1;
 }

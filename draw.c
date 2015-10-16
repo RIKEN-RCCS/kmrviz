@@ -77,7 +77,7 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
       for (i = 0; i < ts->n; i++) {
         kv_trace_t * trace = &ts->traces[i];
         double y = KV_RADIUS + i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-        double x = 55;
+        double x = KV_TIMELINE_START_X;
         //x += kv_scale_down(trace->start_t);
         cairo_move_to(cr, x, y);
         x += kv_scale_down(trace->end_t - trace->start_t);
@@ -88,7 +88,7 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
   }
 
   /* Events */
-  cairo_translate(cr, 55, 0);
+  cairo_translate(cr, KV_TIMELINE_START_X, 0);
   {
     double x, y;
     double r = KV_RADIUS;

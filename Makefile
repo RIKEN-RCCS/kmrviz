@@ -3,7 +3,7 @@ prefix ?= /usr/local
 CC := gcc
 
 SRC_H = kmrviz.h
-SRC_C = kmrviz.c
+SRC_C = kmrviz.c draw.c
 SRC_ALL = $(SRC_H) $(SRC_C) control.c
 
 cflags_1 ?= -Wall -Wextra -g

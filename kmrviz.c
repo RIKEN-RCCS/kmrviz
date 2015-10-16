@@ -2,6 +2,15 @@
 
 kv_global_state_t GS[1];
 
+const char * const KV_COLORS[] =
+  {"orange", "magenta", "cyan", "azure", "green",
+   "gold", "brown1", "burlywood1", "peachpuff", "aquamarine",
+   "chartreuse", "skyblue", "burlywood", "cadetblue", "chocolate",
+   "coral", "cornflowerblue", "cornsilk4", "darkolivegreen1", "darkorange1",
+   "khaki3", "lavenderblush2", "lemonchiffon1", "lightblue1", "lightcyan",
+   "lightgoldenrod", "lightgoldenrodyellow", "lightpink2", "lightsalmon2", "lightskyblue1",
+   "lightsteelblue3", "lightyellow3", "maroon1", "yellowgreen"};
+
 #include "control.c"
 
 void
@@ -39,56 +48,6 @@ kv_viewport_init(kv_viewport_t * VP) {
 void
 kv_viewport_queue_draw(kv_viewport_t * VP) {
   gtk_widget_queue_draw(VP->darea);
-}
-
-static double
-kv_scale_down(double t) {
-  return t / 1E8;
-}
-
-void
-kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
-  kv_trace_set_t * ts = GS->ts;
-  printf("duration %.0lf\n", ts->end_t - ts->start_t);
-  cairo_save(cr);
-  cairo_translate(cr, VP->x, VP->y);
-  cairo_scale(cr, VP->zoom_ratio_x, VP->zoom_ratio_y);
-  
-  /* Rank numbers */
-  {
-    cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
-    cairo_select_font_face(cr, "Courier", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, 12);
-    char s[KV_STRING_LENGTH];
-    double x, y;
-    x = 0;
-    y = KV_RADIUS * 1.2;
-    int i;
-    for (i = 0; i < ts->n; i++) {
-      sprintf(s, "Rank %d", ts->traces[i].rank);
-      cairo_move_to(cr, x, y);
-      cairo_show_text(cr, s);
-      y += 2 * KV_RADIUS;
-    }
-
-    /* Lines */
-    {
-      cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-      int i;
-      for (i = 0; i < ts->n; i++) {
-        kv_trace_t * trace = &ts->traces[i];
-        double x = 55;
-        double y = KV_RADIUS + i * 2 * KV_RADIUS;
-        double w = kv_scale_down(trace->end_t - trace->start_t);
-        cairo_move_to(cr, x, y);
-        cairo_line_to(cr, x + w, y);
-        cairo_stroke(cr);
-      }
-    }
-  }
-
-  
-  cairo_restore(cr);
 }
 
 void
@@ -274,6 +233,7 @@ kv_read_traces(int argc, char * argv[], kv_trace_set_t * ts) {
     if (ts->traces[i].end_t > ts->end_t)
       ts->end_t = ts->traces[i].end_t;
   }
+  printf("min start=%.0lf\nmax end  =%.0lf\n", ts->start_t, ts->end_t);
 
   /* adjust all t based on ts->start_t */
   for (i = 0; i < ts->n; i++) {

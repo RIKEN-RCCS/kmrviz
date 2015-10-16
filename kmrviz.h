@@ -34,6 +34,9 @@
 #define KV_MARGIN_WHEN_ZOOMFIT 15
 #define KV_SAFE_CLICK_RANGE 2
 #define KV_ZOOM_INCREMENT 1.20
+#define KV_LINE_WIDTH 2.5
+#define KV_NUM_COLORS 34
+#define KV_GAP_BETWEEN_TIMELINES 2
 
 /*-- Copy from kmrtrace.h --*/
 typedef enum {
@@ -106,17 +109,21 @@ typedef struct kv_global_state {
 
 
 extern kv_global_state_t GS[];
+extern const char * const KV_COLORS[];
 
 
 /* kmrviz.c */
 void kv_viewport_init(kv_viewport_t *);
 void kv_viewport_queue_draw(kv_viewport_t *);
-void kv_viewport_draw(kv_viewport_t *, cairo_t *);
 
 void kv_gui_init(kv_gui_t *);
 GtkWidget * kv_gui_get_main_window(kv_gui_t *);
 
 void kv_global_state_init(kv_global_state_t *);
+
+
+/* draw.c */
+void kv_viewport_draw(kv_viewport_t *, cairo_t *);
 
 
 #endif /* _KMRVIZ_H */

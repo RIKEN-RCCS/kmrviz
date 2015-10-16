@@ -1,6 +1,6 @@
 #include "kmrviz.h"
 
-static double
+double
 kv_scale_down(double t) {
   return t / 1.5E8;
 }

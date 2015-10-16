@@ -13,6 +13,73 @@ kv_zoom(kv_viewport_t * VP, double new_zrx, double new_zry, double posx, double 
   kv_viewport_queue_draw(VP);
 }
 
+static void
+kv_zoomfit_hor_(kv_viewport_t * VP, double * zrx, double * zry, double * myx, double * myy) {
+  double w = VP->vpw;
+  double h = VP->vph;
+  double zoom_ratio = 1.0;
+  double x = KV_MARGIN_WHEN_ZOOMFIT;
+  double y = KV_MARGIN_WHEN_ZOOMFIT;
+  double d1, d2, dh;
+  d1 = KV_TIMELINE_START_X + kv_scale_down(GS->ts->t_span);
+  d2 = w - 2 * KV_MARGIN_WHEN_ZOOMFIT;
+  if (d1 > d2)
+    zoom_ratio = d2 / d1;
+  dh = 2 * KV_RADIUS + GS->ts->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
+  if (h > dh * zoom_ratio)
+    y += (h - dh * zoom_ratio) * 0.4;
+  *zrx = *zry  = zoom_ratio;
+  *myx = x;
+  *myy = y;
+}
+
+_unused_ static void
+kv_zoomfit_hor(kv_viewport_t * VP) {
+  kv_zoomfit_hor_(VP, &VP->zoom_ratio_x, &VP->zoom_ratio_y, &VP->x, &VP->y);
+  kv_viewport_queue_draw(VP);
+}
+
+static void
+kv_zoomfit_ver_(kv_viewport_t * VP, double * zrx, double * zry, double * myx, double * myy) {
+  double h = VP->vph;
+  double zoom_ratio = 1.0;
+  double x = KV_MARGIN_WHEN_ZOOMFIT;
+  double y = KV_MARGIN_WHEN_ZOOMFIT;
+  double d1, d2;
+  d1 = 2 * KV_RADIUS + GS->ts->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
+  d2 = h - 2 * KV_MARGIN_WHEN_ZOOMFIT;
+  if (d1 > d2)
+    zoom_ratio = d2 / d1;
+  *zrx = *zry = zoom_ratio;
+  *myx = x;
+  *myy = y;
+}
+
+_unused_ static void
+kv_zoomfit_ver(kv_viewport_t * VP) {
+  kv_zoomfit_ver_(VP, &VP->zoom_ratio_x, &VP->zoom_ratio_y, &VP->x, &VP->y);
+  kv_viewport_queue_draw(VP);
+}
+
+void
+kv_zoomfit_full(kv_viewport_t * VP) {
+  double h_zrx, h_zry, h_x, h_y;
+  kv_zoomfit_hor_(VP, &h_zrx, &h_zry, &h_x, &h_y);
+  double v_zrx, v_zry, v_x, v_y;
+  kv_zoomfit_ver_(VP, &v_zrx, &v_zry, &v_x, &v_y);
+  if (v_zrx < h_zrx) {
+    h_zrx = v_zrx;
+    h_zry = v_zry;
+    h_x = v_x;
+    h_y = v_y;
+  }
+  VP->zoom_ratio_x = h_zrx;
+  VP->zoom_ratio_y = h_zry;
+  VP->x = h_x;
+  VP->y = h_y;
+  kv_viewport_queue_draw(VP);
+}
+
 /****************** end of Processes *******************************/
 
 
@@ -43,7 +110,7 @@ on_toolbar_toolbox_button_clicked(_unused_ GtkToolButton * toolbtn, _unused_ gpo
 
 static void
 on_toolbar_zoomfit_button_clicked(_unused_ GtkToolButton * toolbtn, _unused_ gpointer user_data) {
-  //kv_do_zoomfit();
+  kv_zoomfit_full(GS->VP);
 }
 
 static gboolean

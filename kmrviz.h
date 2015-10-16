@@ -125,6 +125,7 @@ void kv_global_state_init(kv_global_state_t *);
 
 
 /* draw.c */
+double kv_scale_down(double);
 void kv_viewport_draw(kv_viewport_t *, cairo_t *);
 
 

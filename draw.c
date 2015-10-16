@@ -1,3 +1,5 @@
+#include "kmrviz.h"
+
 static double
 kv_scale_down(double t) {
   return t / 1.5E8;
@@ -70,6 +72,7 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
     /* Lines */
     {
       cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+      cairo_set_line_width(cr, KV_LINE_WIDTH / 2);
       int i;
       for (i = 0; i < ts->n; i++) {
         kv_trace_t * trace = &ts->traces[i];

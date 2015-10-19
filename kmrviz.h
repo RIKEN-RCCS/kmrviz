@@ -125,6 +125,7 @@ typedef struct kv_global_state {
   kv_viewport_t VP[1];
   kv_trace_set_t TS[1];
   int align_start;
+  int toolbox_shown;
 } kv_global_state_t;
 
 

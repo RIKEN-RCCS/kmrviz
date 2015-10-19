@@ -87,8 +87,10 @@ kv_zoomfit_full(kv_viewport_t * VP) {
 
 void
 kv_toggle_toolbox(int enable) {
+  if (GS->toolbox_shown == enable) return;
   kv_gui_t * GUI = GS->GUI;
   GtkWidget * sidebox = kv_gui_get_toolbox_sidebox(GUI);
+  GS->toolbox_shown = enable;
   if (enable) {
     gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.toolbox), TRUE);
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.toolbox), TRUE);

@@ -112,6 +112,11 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     GtkWidget * item;
     item = GTK_WIDGET(gtk_builder_get_object(builder, "exit"));
     gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE); 
+    item = GTK_WIDGET(gtk_builder_get_object(builder, "toolbox"));
+    GUI->onmenubar.toolbox = GTK_CHECK_MENU_ITEM(item);
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_t, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE); 
+    item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_full"));
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_f, 0, GTK_ACCEL_VISIBLE); 
   }
 
   /* Toolbar */
@@ -119,12 +124,12 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     GtkWidget * toolbar = GUI->toolbar = gtk_toolbar_new();
     gtk_box_pack_start(GTK_BOX(window_box), toolbar, FALSE, FALSE, 0);
     
-    /* settings button */
+    /* toolbox button */
     {
-      GtkToolItem * btn_settings = gtk_toggle_tool_button_new();
+      GtkToolItem * btn_settings = GUI->ontoolbar.toolbox = gtk_toggle_tool_button_new();
       gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_settings, -1);
       gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_settings), "preferences-system");
-      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_settings), "Show toolbox");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_settings), "Show toolbox (Ctrl+T)");
       gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn_settings), FALSE);
       g_signal_connect(G_OBJECT(btn_settings), "toggled", G_CALLBACK(on_toolbar_toolbox_button_toggled), NULL);
     }
@@ -182,6 +187,20 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
   GtkWidget * sidebox = GUI->toolbox.sidebox = gtk_frame_new("Toolbox");
   gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
   g_object_ref(sidebox);  
+
+  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 5);
+
+  GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 5);
+
+  GtkWidget * align_start = GUI->toolbox.align_start = gtk_check_button_new_with_label("Align start times");
+  gtk_box_pack_start(GTK_BOX(box), align_start, FALSE, FALSE, 0);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(align_start), GS->align_start);
+  g_signal_connect(G_OBJECT(align_start), "toggled", G_CALLBACK(on_toolbox_align_start_toggled), (void *) NULL);
+
   gtk_widget_show_all(sidebox);
   return sidebox;
 }
@@ -191,6 +210,7 @@ kv_global_state_init(kv_global_state_t * GS) {
   memset(GS, 0, sizeof(kv_global_state_t));
   kv_gui_init(GS->GUI);
   kv_viewport_init(GS->VP);
+  GS->align_start = 1;
 }
 
 static void
@@ -257,40 +277,42 @@ kv_read_trace(char * filename, kv_trace_t * kt) {
 }
 
 static void
-kv_read_traces(int argc, char * argv[], kv_trace_set_t * ts) {
+kv_read_traces(int argc, char * argv[], kv_trace_set_t * TS) {
   /* read traces */
-  ts->traces = (kv_trace_t *) malloc( (argc - 1) * sizeof(kv_trace_t) );
-  ts->n = 0;
+  TS->traces = (kv_trace_t *) malloc( (argc - 1) * sizeof(kv_trace_t) );
+  TS->n = 0;
   int i;
   for (i = 1; i < argc; i++) {
-    if (kv_read_trace(argv[i], &ts->traces[ts->n]))
-      ts->n++;
+    if (kv_read_trace(argv[i], &TS->traces[TS->n]))
+      TS->n++;
   }
-  printf("ntraces = %d\n", ts->n);
+  printf("ntraces = %d\n", TS->n);
   
   /* find min start_t, max end_t */
-  ts->start_t = -1;
-  ts->end_t = 0;
-  ts->t_span = 0;
-  for (i = 0; i < ts->n; i++) {
-    kv_trace_t * trace = &ts->traces[i];
-    if (ts->start_t < 0 || trace->start_t < ts->start_t)
-      ts->start_t = trace->start_t;
-    if (trace->end_t > ts->end_t)
-      ts->end_t = trace->end_t;
-    if (trace->end_t - trace->start_t > ts->t_span)
-      ts->t_span = trace->end_t - trace->start_t;
+  TS->start_t = -1;
+  TS->end_t = 0;
+  TS->t_span = 0;
+  for (i = 0; i < TS->n; i++) {
+    kv_trace_t * trace = &TS->traces[i];
+    if (TS->start_t < 0 || trace->start_t < TS->start_t)
+      TS->start_t = trace->start_t;
+    if (trace->end_t > TS->end_t)
+      TS->end_t = trace->end_t;
+    if (trace->end_t - trace->start_t > TS->t_span)
+      TS->t_span = trace->end_t - trace->start_t;
   }
-  printf("min start=%.0lf\nmax end  =%.0lf\n", ts->start_t, ts->end_t);
+  printf("min start=%.0lf\nmax end  =%.0lf\n", TS->start_t, TS->end_t);
 
-  /* adjust all t based on ts->start_t */
-  for (i = 0; i < ts->n; i++) {
-    ts->traces[i].start_t -= ts->start_t;
-    ts->traces[i].end_t -= ts->start_t;
+  /* adjust all t based on TS->start_t */
+  /*
+  for (i = 0; i < TS->n; i++) {
+    TS->traces[i].start_t -= TS->start_t;
+    TS->traces[i].end_t -= TS->start_t;
     int j;
-    for (j = 0; j < ts->traces[i].n; j++)      
-      ts->traces[i].e[j].t -= ts->start_t;
-  }  
+    for (j = 0; j < TS->traces[i].n; j++)      
+      TS->traces[i].e[j].t -= TS->start_t;
+  }
+  */
 }
 
 int
@@ -302,15 +324,15 @@ main(int argc, char * argv[]) {
   kv_global_state_init(GS);
 
   /* Data */
-  kv_read_traces(argc, argv, GS->ts);
+  kv_read_traces(argc, argv, GS->TS);
 
   /* Open GUI */
   kv_open_gui(argc, argv);
   gtk_widget_grab_focus(GS->VP->darea);
   char s[KV_STRING_LENGTH];
-  sprintf(s, "Ranks: %d", GS->ts->n);
+  sprintf(s, "Ranks: %d", GS->TS->n);
   gtk_statusbar_push(GTK_STATUSBAR(GS->GUI->statusbar3), 0, s);
-  sprintf(s, "Span: %.0lf ns", GS->ts->t_span);
+  sprintf(s, "Span: %.0lf ns", GS->TS->t_span);
   gtk_statusbar_push(GTK_STATUSBAR(GS->GUI->statusbar2), 0, s);
 
   /* Run */

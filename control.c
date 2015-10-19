@@ -20,13 +20,16 @@ kv_zoomfit_hor_(kv_viewport_t * VP, double * zrx, double * zry, double * myx, do
   double x = KV_MARGIN_WHEN_ZOOMFIT;
   double y = KV_MARGIN_WHEN_ZOOMFIT;
   double d1, d2;
-  d1 = KV_TIMELINE_START_X + kv_scale_down(GS->ts->t_span);
+  if (GS->align_start)
+    d1 = KV_TIMELINE_START_X + kv_scale_down_span(GS->TS->t_span);
+  else
+    d1 = KV_TIMELINE_START_X + kv_scale_down_span(GS->TS->end_t - GS->TS->start_t);
   d2 = w - 2 * KV_MARGIN_WHEN_ZOOMFIT;
   if (d1 > d2)
     zoom_ratio = d2 / d1;
   /*
   double h = VP->vph;
-  double dh = 2 * KV_RADIUS + GS->ts->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
+  double dh = 2 * KV_RADIUS + GS->TS->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
   if (h > dh * zoom_ratio)
     y += (h - dh * zoom_ratio) * 0.4;
   */
@@ -48,7 +51,7 @@ kv_zoomfit_ver_(kv_viewport_t * VP, double * zrx, double * zry, double * myx, do
   double x = KV_MARGIN_WHEN_ZOOMFIT;
   double y = KV_MARGIN_WHEN_ZOOMFIT;
   double d1, d2;
-  d1 = 2 * KV_RADIUS + GS->ts->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
+  d1 = 2 * KV_RADIUS + GS->TS->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
   d2 = h - 2 * KV_MARGIN_WHEN_ZOOMFIT;
   if (d1 > d2)
     zoom_ratio = d2 / d1;
@@ -82,6 +85,21 @@ kv_zoomfit_full(kv_viewport_t * VP) {
   kv_viewport_queue_draw(VP);
 }
 
+void
+kv_toggle_toolbox(int enable) {
+  kv_gui_t * GUI = GS->GUI;
+  GtkWidget * sidebox = kv_gui_get_toolbox_sidebox(GUI);
+  if (enable) {
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.toolbox), TRUE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.toolbox), TRUE);
+    gtk_box_pack_start(GTK_BOX(GS->GUI->left_sidebar), sidebox, FALSE, FALSE, 0);
+  } else {
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.toolbox), FALSE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.toolbox), FALSE);
+    gtk_container_remove(GTK_CONTAINER(GS->GUI->left_sidebar), sidebox);
+  }
+}
+
 /****************** end of Processes *******************************/
 
 
@@ -107,12 +125,11 @@ on_window_key_event(_unused_ GtkWidget * widget, GdkEvent * event, _unused_ gpoi
 
 static void
 on_toolbar_toolbox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unused_ gpointer user_data) {
-  GtkWidget * sidebox = kv_gui_get_toolbox_sidebox(GS->GUI);
   gboolean active = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(toolbtn));
   if (active) {
-    gtk_box_pack_start(GTK_BOX(GS->GUI->left_sidebar), sidebox, FALSE, FALSE, 0);
+    kv_toggle_toolbox(1);
   } else {
-    gtk_container_remove(GTK_CONTAINER(GS->GUI->left_sidebar), sidebox);
+    kv_toggle_toolbox(0);
   }
 }
 
@@ -248,6 +265,31 @@ on_darea_key_press_event(_unused_ GtkWidget * widget, _unused_ GdkEventConfigure
     return FALSE;
   }
   return FALSE;        
+}
+
+static void
+on_toolbox_align_start_toggled(GtkWidget * widget, _unused_ gpointer user_data) {
+  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
+    GS->align_start = 1;
+  } else {
+    GS->align_start = 0;
+  }
+  kv_viewport_queue_draw(GS->VP);
+}
+
+G_MODULE_EXPORT void
+on_menubar_view_toolbox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_ gpointer user_data) {
+  gboolean active = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem));
+  if (active) {
+    kv_toggle_toolbox(1);
+  } else {
+    kv_toggle_toolbox(0);
+  }
+}
+
+G_MODULE_EXPORT void
+on_menubar_view_zoomfit_full_activated(_unused_ GtkMenuItem * menuitem, _unused_ gpointer user_data) {
+  kv_zoomfit_full(GS->VP);
 }
 
 /****************** end of GUI Callbacks *******************************/

@@ -1,8 +1,16 @@
 #include "kmrviz.h"
 
 double
-kv_scale_down(double t) {
+kv_scale_down_span(double t) {
   return t / 1.5E8;
+}
+
+double
+kv_scale_down(kv_trace_t * trace, double t) {
+  if (GS->align_start && trace)
+    return kv_scale_down_span(t - trace->start_t);
+  else
+    return kv_scale_down_span(t - GS->TS->start_t);
 }
 
 static void
@@ -50,9 +58,9 @@ kv_viewport_clip_trim(kv_viewport_t * VP, double * xx, double * yy, double * ww,
 
 static void
 kv_draw_slash(cairo_t * cr, kv_viewport_t * VP, kv_trace_t * trace, kv_trace_entry_t * e) {
-  int i = trace - GS->ts->traces;
+  int i = trace - GS->TS->traces;
   double y = i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-  double x = KV_TIMELINE_START_X + kv_scale_down(e->t - trace->start_t);
+  double x = KV_TIMELINE_START_X + kv_scale_down(trace, e->t);
   double h = 2 * KV_RADIUS;
   double w = 0.0;
   GdkRGBA color;
@@ -73,10 +81,10 @@ kv_draw_box(cairo_t * cr, kv_viewport_t * VP, kv_trace_t * trace, kv_trace_entry
   GdkRGBA color;
   kv_lookup_color(e1->e / 2, &color.red, &color.green, &color.blue, &color.alpha);
   
-  int i = trace - GS->ts->traces;
-  double x = KV_TIMELINE_START_X + kv_scale_down(e1->t - trace->start_t);
+  int i = trace - GS->TS->traces;
+  double x = KV_TIMELINE_START_X + kv_scale_down(trace, e1->t);
   double y = i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-  double w = kv_scale_down(e2->t - e1->t);
+  double w = kv_scale_down_span(e2->t - e1->t);
   double h = 2 * KV_RADIUS;
 
   if (kv_viewport_clip_trim(VP, &x, &y, &w, &h)) {
@@ -89,8 +97,8 @@ kv_draw_box(cairo_t * cr, kv_viewport_t * VP, kv_trace_t * trace, kv_trace_entry
 
 void
 kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
-  kv_trace_set_t * ts = GS->ts;
-  //printf("duration %.0lf\n", ts->end_t - ts->start_t);
+  kv_trace_set_t * TS = GS->TS;
+  //printf("duration %.0lf\n", TS->end_t - TS->start_t);
   
   cairo_save(cr);
   cairo_rectangle(cr, 0, 0, VP->vpw, VP->vph);
@@ -109,8 +117,8 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
     x = 0;
     y = KV_RADIUS * 1.3;
     int i;
-    for (i = 0; i < ts->n; i++) {
-      sprintf(s, "Rank %d", ts->traces[i].rank);
+    for (i = 0; i < TS->n; i++) {
+      sprintf(s, "Rank %d", TS->traces[i].rank);
       cairo_move_to(cr, x, y);
       cairo_show_text(cr, s);
       y += 2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES;
@@ -121,12 +129,11 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
       cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
       cairo_set_line_width(cr, KV_LINE_WIDTH / 2 / VP->zoom_ratio_x);
       int i;
-      for (i = 0; i < ts->n; i++) {
-        kv_trace_t * trace = &ts->traces[i];
+      for (i = 0; i < TS->n; i++) {
+        kv_trace_t * trace = &TS->traces[i];
         double y = KV_RADIUS + i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-        double x = KV_TIMELINE_START_X;
-        //x += kv_scale_down(trace->start_t);
-        double w = kv_scale_down(trace->end_t - trace->start_t);
+        double x = KV_TIMELINE_START_X + kv_scale_down(trace, trace->start_t);
+        double w = kv_scale_down_span(trace->end_t - trace->start_t);
         double h = 0.0;
         if (kv_viewport_clip_trim(VP, &x, &y, &w, &h)) {
             cairo_move_to(cr, x, y);
@@ -143,18 +150,18 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
     double x, y;
     double r = KV_RADIUS;
     int i;
-    for (i = 0; i < ts->n; i++) {
+    for (i = 0; i < TS->n; i++) {
       y = KV_RADIUS + i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-      kv_trace_t * trace = &ts->traces[i];
+      kv_trace_t * trace = &TS->traces[i];
       
       /* trace's start, end */
       cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
       cairo_set_line_width(cr, KV_LINE_WIDTH / VP->zoom_ratio_x);
-      x = basex;// + kv_scale_down(trace->start_t);
+      x = basex + kv_scale_down(trace, trace->start_t);
       cairo_move_to(cr, x, y - r);
       cairo_line_to(cr, x, y + r);
       cairo_stroke(cr);
-      x = basex + kv_scale_down(trace->end_t - trace->start_t);
+      x = basex + kv_scale_down(trace, trace->end_t);
       cairo_move_to(cr, x, y - r);
       cairo_line_to(cr, x, y + r);
       cairo_stroke(cr);

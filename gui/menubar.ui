@@ -25,6 +25,32 @@
     </child>
     
     <child>
+      <object class="GtkMenuItem" id="view">
+        <property name="use-underline">TRUE</property>
+        <property name="label">_View</property>
+        <child type="submenu">
+          <object class="GtkMenu" id="view_menu">
+            
+            <child><object class="GtkCheckMenuItem" id="toolbox">
+                <property name="use-underline">TRUE</property>
+                <property name="label">_Toolbox</property>
+                <signal name="activate" handler="on_menubar_view_toolbox_activated"/>
+            </object></child>
+            
+            <child><object class="GtkSeparatorMenuItem" id="view_separator_1"></object></child>
+            
+            <child><object class="GtkMenuItem" id="zoomfit_full">
+                <property name="use-underline">TRUE</property>
+                <property name="label">Zoom _fully fit</property>
+                <signal name="activate" handler="on_menubar_view_zoomfit_full_activated"/>
+            </object></child>
+            
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
       <object class="GtkMenuItem" id="help">
         <property name="use-underline">TRUE</property>
         <property name="label">_Help</property>

@@ -103,16 +103,28 @@ typedef struct kv_gui {
   GtkAccelGroup * accel_group;  
   GtkBuilder * builder;
 
+  /* On toolbar */
+  struct {
+    GtkToolItem * toolbox;
+  } ontoolbar;
+
+  /* On menubar */
+  struct {
+    GtkCheckMenuItem * toolbox;
+  } onmenubar;
+
   /* Sideboxes */
   struct toolbox {
     GtkWidget * sidebox;
+    GtkWidget * align_start;
   } toolbox;
 } kv_gui_t;
 
 typedef struct kv_global_state {
   kv_gui_t GUI[1];
   kv_viewport_t VP[1];
-  kv_trace_set_t ts[1];
+  kv_trace_set_t TS[1];
+  int align_start;
 } kv_global_state_t;
 
 
@@ -136,7 +148,8 @@ void kv_global_state_init(kv_global_state_t *);
 
 
 /* draw.c */
-double kv_scale_down(double);
+double kv_scale_down_span(double);
+double kv_scale_down(kv_trace_t *, double);
 void kv_viewport_draw(kv_viewport_t *, cairo_t *);
 
 

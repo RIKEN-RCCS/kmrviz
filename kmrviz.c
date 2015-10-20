@@ -226,8 +226,37 @@ kv_open_gui(_unused_ int argc, _unused_ char * argv[]) {
   gtk_widget_show_all(window);
 }
 
-static int
-kv_read_trace(char * filename, kv_trace_t * kt) {
+_static_unused_ int
+kv_read_trace_txt(char * filename, kv_trace_t * trace) {
+  FILE * fs = fopen(filename, "r");
+  if (fs == NULL) {
+    fprintf(stderr, "fopen: %d\n", errno);
+    return 0;
+  }
+  printf("Trace %s:\n", filename);
+
+  fscanf(fs, "rank: %d\n", &trace->rank);
+  fscanf(fs, "start_t: %lf\n", &trace->start_t);
+  fscanf(fs, "end_t: %lf\n", &trace->end_t);
+  fscanf(fs, "n: %ld\n", &trace->n);
+  printf("  rank=%d\n"
+         "  start_t=%21.0lf\n"
+         "  end_t  =%21.0lf\n"
+         "  n=%ld\n",
+         trace->rank, trace->start_t, trace->end_t, trace->n);
+  trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
+  int i;
+  for (i = 0; i < trace->n; i++) {
+    fscanf(fs, "event %d at t=%lf\n", &(trace->e[i].e), &(trace->e[i].t));
+    if (i == 0 || i == trace->n - 1)
+      printf("  e[%d]=(%21.0lf,%d)\n",
+             i, trace->e[i].t, trace->e[i].e);
+  }
+  return 1;
+}
+
+_static_unused_ int
+kv_read_trace(char * filename, kv_trace_t * trace) {
   int fd = open(filename, O_RDONLY);
   if (fd < 0) {
     fprintf(stderr, "open: %d\n", errno);
@@ -249,29 +278,29 @@ kv_read_trace(char * filename, kv_trace_t * kt) {
     fprintf(stderr, "mmap: error\n");
     return 0;
   }
-  kt->rank = *((int *) dp);
+  trace->rank = *((int *) dp);
   dp += sizeof(int);
-  kt->start_t = *((double *) dp);
+  trace->start_t = *((double *) dp);
   dp += sizeof(double);
-  kt->end_t = *((double *) dp);
+  trace->end_t = *((double *) dp);
   dp += sizeof(double);
-  kt->n = *((long *) dp);
+  trace->n = *((long *) dp);
   dp += sizeof(long);
   printf("  rank=%d\n"
          "  start_t=%21.0lf\n"
          "  end_t  =%21.0lf\n"
          "  n=%ld\n",
-         kt->rank, kt->start_t, kt->end_t, kt->n);
-  kt->e = (kv_trace_entry_t *) malloc( kt->n * sizeof(kv_trace_entry_t) );
+         trace->rank, trace->start_t, trace->end_t, trace->n);
+  trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
   int i;
-  for (i = 0; i < kt->n; i++) {
-    kt->e[i].t = *((double *) dp);
+  for (i = 0; i < trace->n; i++) {
+    trace->e[i].t = *((double *) dp);
     dp += sizeof(double);
-    kt->e[i].e = *((int *) dp);
+    trace->e[i].e = *((int *) dp);
     dp += sizeof(int);
-    if (i == 0 || i == kt->n - 1)
+    if (i == 0 || i == trace->n - 1)
       printf("  e[%d]=(%21.0lf,%d)\n",
-             i, kt->e[i].t, kt->e[i].e);
+             i, trace->e[i].t, trace->e[i].e);
   }
   return 1;
 }
@@ -283,8 +312,17 @@ kv_read_traces(int argc, char * argv[], kv_trace_set_t * TS) {
   TS->n = 0;
   int i;
   for (i = 1; i < argc; i++) {
-    if (kv_read_trace(argv[i], &TS->traces[TS->n]))
-      TS->n++;
+    char * subs;
+    if ( (subs = strstr(argv[i], "txt")) && (strlen(subs) == 3) ) {
+      if (kv_read_trace_txt(argv[i], &TS->traces[TS->n]))
+        TS->n++;
+    } else if ( (subs = strstr(argv[i], "bin")) && (strlen(subs) == 3) ) {
+      if (kv_read_trace(argv[i], &TS->traces[TS->n]))
+        TS->n++;
+    } else {
+      if (kv_read_trace(argv[i], &TS->traces[TS->n]))
+        TS->n++;
+    }
   }
   printf("ntraces = %d\n", TS->n);
   

@@ -25,6 +25,8 @@
 #include <sys/time.h>
 #include <execinfo.h>
 
+#include <stdint.h>
+
 
 #define _unused_ __attribute__((unused))
 #define _static_unused_ static __attribute__((unused))

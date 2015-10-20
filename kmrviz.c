@@ -256,7 +256,7 @@ kv_read_trace_txt(char * filename, kv_trace_t * trace) {
 }
 
 _static_unused_ int
-kv_read_trace(char * filename, kv_trace_t * trace) {
+kv_read_trace_bin(char * filename, kv_trace_t * trace) {
   int fd = open(filename, O_RDONLY);
   if (fd < 0) {
     fprintf(stderr, "open: %d\n", errno);
@@ -305,6 +305,50 @@ kv_read_trace(char * filename, kv_trace_t * trace) {
   return 1;
 }
 
+static int
+kv_read_trace(char * filename, kv_trace_t * trace) {
+  int ret = 0;
+  char * subs;
+  if ( (subs = strstr(filename, "txt")) && (strlen(subs) == 3) ) {
+    if (kv_read_trace_txt(filename, trace))
+      ret = 1;
+  } else if ( (subs = strstr(filename, "bin")) && (strlen(subs) == 3) ) {
+    if (kv_read_trace_bin(filename, trace))
+      ret = 1;
+  } else {
+    if (kv_read_trace_bin(filename, trace))
+      ret = 1;
+  }
+  return ret;
+}
+
+static int
+kv_replace_asterisk(kv_trace_set_t * TS, char * filename) {
+  char * pos = filename;
+  while (*pos != '\0' && *pos != '*') {
+    pos++;
+  }
+  if (*pos == '*') {
+    *pos = '\0';
+    char newfn[1000];
+    int v = 0;
+    while (1) {
+      sprintf(newfn, "%s%d%s", filename, v, pos + 1);
+      if (!kv_replace_asterisk(TS, newfn))
+        break;
+      v++;
+    }
+    *pos = '*';
+  } else if (*pos == '\0') {
+    printf("to read %s\n", filename);
+    if (kv_read_trace(filename, &TS->traces[TS->n])) {
+      TS->n++;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static void
 kv_read_traces(int argc, char * argv[], kv_trace_set_t * TS) {
   /* read traces */
@@ -312,17 +356,8 @@ kv_read_traces(int argc, char * argv[], kv_trace_set_t * TS) {
   TS->n = 0;
   int i;
   for (i = 1; i < argc; i++) {
-    char * subs;
-    if ( (subs = strstr(argv[i], "txt")) && (strlen(subs) == 3) ) {
-      if (kv_read_trace_txt(argv[i], &TS->traces[TS->n]))
-        TS->n++;
-    } else if ( (subs = strstr(argv[i], "bin")) && (strlen(subs) == 3) ) {
-      if (kv_read_trace(argv[i], &TS->traces[TS->n]))
-        TS->n++;
-    } else {
-      if (kv_read_trace(argv[i], &TS->traces[TS->n]))
-        TS->n++;
-    }
+    char * filename = argv[i];
+    kv_replace_asterisk(TS, filename);    
   }
   printf("ntraces = %d\n", TS->n);
   

@@ -26,6 +26,7 @@
 #include <execinfo.h>
 
 #include <stdint.h>
+#include <byteswap.h>
 
 
 #define _unused_ __attribute__((unused))
@@ -155,5 +156,27 @@ double kv_scale_down_span(double);
 double kv_scale_down(kv_trace_t *, double);
 void kv_viewport_draw(kv_viewport_t *, cairo_t *);
 
+
+_static_unused_ void
+kv_swap_bytes(void * input, void * output, int bytes) {
+  int i;
+  for (i = 0; i < bytes; i++)
+    ((char *) output)[i] = ((char *) input)[bytes - 1 - i];
+  /*
+  if (bytes == 16)
+    *((uint16_t *) output) = __bswap_16(*((uint16_t *) input));
+  else if (bytes == 32)
+    *((uint32_t *) output) = __bswap_32(*((uint32_t *) input));
+  else if (bytes == 64)
+    *((uint64_t *) output) = __bswap_64(*((uint64_t *) input));
+   */
+}
+
+#define KV_ENDIAN_CHECKER 0xdeadbeef
+#define KV_BIG_ENDIAN     0xde
+#define KV_LITTLE_ENDIAN  0xef
+#define KV_GET_FIRST_BYTE(x) ((uint8_t *) x)[0]
+#define KV_IS_BIG_ENDIAN(x) (KV_GET_FIRST_BYTE(x) == KV_BIG_ENDIAN)
+#define KV_IS_LITTLE_ENDIAN(x) (KV_GET_FIRST_BYTE(x) == KV_LITTLE_ENDIAN)
 
 #endif /* _KMRVIZ_H */

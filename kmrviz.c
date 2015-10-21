@@ -240,8 +240,8 @@ kv_read_trace_txt(char * filename, kv_trace_t * trace) {
   fscanf(fs, "end_t: %lf\n", &trace->end_t);
   fscanf(fs, "n: %ld\n", &trace->n);
   printf("  rank=%d\n"
-         "  start_t=%21.0lf\n"
-         "  end_t  =%21.0lf\n"
+         "  start_t=%.0lf\n"
+         "  end_t  =%.0lf\n"
          "  n=%ld\n",
          trace->rank, trace->start_t, trace->end_t, trace->n);
   trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
@@ -249,7 +249,7 @@ kv_read_trace_txt(char * filename, kv_trace_t * trace) {
   for (i = 0; i < trace->n; i++) {
     fscanf(fs, "event %d at t=%lf\n", &(trace->e[i].e), &(trace->e[i].t));
     if (i == 0 || i == trace->n - 1)
-      printf("  e[%d]=(%21.0lf,%d)\n",
+      printf("  e[%d]=(%.0lf,%d)\n",
              i, trace->e[i].t, trace->e[i].e);
   }
   return 1;
@@ -278,28 +278,70 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
     fprintf(stderr, "mmap: error\n");
     return 0;
   }
-  trace->rank = *((int *) dp);
+
+  int x = KV_ENDIAN_CHECKER;
+  int host_endianness = KV_GET_FIRST_BYTE(&x);
+  int data_endianness = KV_BIG_ENDIAN;
+  int do_swap_byte = (host_endianness != data_endianness);
+  /* rank */
+  if (!do_swap_byte) {
+    trace->rank = *((int *) dp);
+  } else {
+    kv_swap_bytes(dp, &trace->rank, sizeof(int));
+  }
   dp += sizeof(int);
-  trace->start_t = *((double *) dp);
+  
+  /* start_t */
+  if (!do_swap_byte) {
+    trace->start_t = *((double *) dp);
+  } else {
+    kv_swap_bytes(dp, &trace->start_t, sizeof(double));
+  }
   dp += sizeof(double);
-  trace->end_t = *((double *) dp);
+
+  /* end_t */
+  if (!do_swap_byte) {
+    trace->end_t = *((double *) dp);
+  } else {
+    kv_swap_bytes(dp, &trace->end_t, sizeof(double));
+  }
   dp += sizeof(double);
-  trace->n = *((long *) dp);
+
+  /* n */
+  if (!do_swap_byte) {
+    trace->n = *((long *) dp);
+  } else {
+    kv_swap_bytes(dp, &trace->n, sizeof(long));
+  }
   dp += sizeof(long);
+
+  
   printf("  rank=%d\n"
-         "  start_t=%21.0lf\n"
-         "  end_t  =%21.0lf\n"
+         "  start_t=%.0lf\n"
+         "  end_t  =%.0lf\n"
          "  n=%ld\n",
          trace->rank, trace->start_t, trace->end_t, trace->n);
+  
+  /* e */
   trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
   int i;
   for (i = 0; i < trace->n; i++) {
-    trace->e[i].t = *((double *) dp);
+    /* e.t */
+    if (!do_swap_byte) {
+      trace->e[i].t = *((double *) dp);
+    } else {
+      kv_swap_bytes(dp, &(trace->e[i].t), sizeof(double));
+    }
     dp += sizeof(double);
-    trace->e[i].e = *((int *) dp);
+    /* e.e */
+    if (!do_swap_byte) {
+      trace->e[i].e = *((int *) dp);
+    } else {
+      kv_swap_bytes(dp, &(trace->e[i].e), sizeof(int));
+    }
     dp += sizeof(int);
     if (i == 0 || i == trace->n - 1)
-      printf("  e[%d]=(%21.0lf,%d)\n",
+      printf("  e[%d]=(%.0lf,%d)\n",
              i, trace->e[i].t, trace->e[i].e);
   }
   return 1;
@@ -340,7 +382,6 @@ kv_replace_asterisk(kv_trace_set_t * TS, char * filename) {
     }
     *pos = '*';
   } else if (*pos == '\0') {
-    printf("to read %s\n", filename);
     if (kv_read_trace(filename, &TS->traces[TS->n])) {
       TS->n++;
       return 1;

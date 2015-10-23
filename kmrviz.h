@@ -170,6 +170,7 @@ typedef struct kv_gui {
     GtkWidget * type;
     GtkWidget * start_t;
     GtkWidget * end_t;
+    GtkWidget * span;
   } infobox;
 } kv_gui_t;
 

@@ -259,6 +259,12 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   GtkWidget * end_t = GUI->infobox.end_t = gtk_label_new("End time:");
   gtk_box_pack_start(GTK_BOX(box), end_t, FALSE, FALSE, 0);
 
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  GtkWidget * span = GUI->infobox.span = gtk_label_new("Span:");
+  gtk_box_pack_start(GTK_BOX(box), span, FALSE, FALSE, 0);
+
   gtk_widget_show_all(sidebox);
   return sidebox;
 }
@@ -273,6 +279,8 @@ kv_gui_update_infobox(kv_timeline_box_t * box) {
   gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.start_t), s);
   sprintf(s, "End time: %.0lf", box->end_e->t - GS->TS->start_t);
   gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.end_t), s);
+  sprintf(s, "Span: %.0lf", box->end_e->t - box->start_e->t);
+  gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.span), s);
 }
 
 void

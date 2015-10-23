@@ -200,7 +200,18 @@ on_toolbar_infobox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unuse
 
 static void
 on_toolbar_zoomfit_button_clicked(_unused_ GtkToolButton * toolbtn, _unused_ gpointer user_data) {
-  kv_zoomfit_full(GS->VP);
+  long i = (long) user_data;
+  switch (i) {
+  case 0:
+    kv_zoomfit_full(GS->VP);
+    break;
+  case 1:
+    kv_zoomfit_hor(GS->VP);
+    break;
+  case 2:
+    kv_zoomfit_ver(GS->VP);
+    break;
+  }
 }
 
 static gboolean
@@ -361,6 +372,11 @@ on_toolbox_align_start_toggled(GtkWidget * widget, _unused_ gpointer user_data) 
 }
 
 G_MODULE_EXPORT void
+on_menubar_file_exit_activated(_unused_ GtkMenuItem * menuitem, _unused_ gpointer user_data) {
+  gtk_main_quit();
+}
+
+G_MODULE_EXPORT void
 on_menubar_view_toolbox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_ gpointer user_data) {
   gboolean active = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem));
   if (active) {
@@ -378,6 +394,16 @@ on_menubar_view_infobox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_
   } else {
     kv_toggle_infobox(0);
   }
+}
+
+G_MODULE_EXPORT void
+on_menubar_view_zoomfit_hor_activated(_unused_ GtkMenuItem * menuitem, _unused_ gpointer user_data) {
+  kv_zoomfit_hor(GS->VP);
+}
+
+G_MODULE_EXPORT void
+on_menubar_view_zoomfit_ver_activated(_unused_ GtkMenuItem * menuitem, _unused_ gpointer user_data) {
+  kv_zoomfit_ver(GS->VP);
 }
 
 G_MODULE_EXPORT void

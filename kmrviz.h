@@ -40,7 +40,7 @@
 #define KV_LINE_WIDTH 2.0
 #define KV_NUM_COLORS 36
 #define KV_GAP_BETWEEN_TIMELINES 2
-#define KV_TIMELINE_START_X 55
+#define KV_TIMELINE_START_X 75
 #define KV_NESTED_DECREASE_RATE 0.9
 
 /*-- Copy from kmrtrace.h --*/

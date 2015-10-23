@@ -124,6 +124,10 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     GUI->onmenubar.infobox = GTK_CHECK_MENU_ITEM(item);
     gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_i, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
     
+    item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_hor"));
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_h, 0, GTK_ACCEL_VISIBLE); 
+    item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_ver"));
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_v, 0, GTK_ACCEL_VISIBLE); 
     item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_full"));
     gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_f, 0, GTK_ACCEL_VISIBLE); 
   }
@@ -156,11 +160,25 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     /* zoomfit button */
     {      
       gtk_toolbar_insert(GTK_TOOLBAR(toolbar), gtk_separator_tool_item_new(), -1);
-      GtkToolItem * btn_zoomfit = gtk_tool_button_new(NULL, NULL);
+      GtkToolItem * btn_zoomfit = gtk_menu_tool_button_new(NULL, NULL);
       gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_zoomfit, -1);
       gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_zoomfit), "zoom-fit-best");
-      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_zoomfit), "Zoom visualization fitly (F)");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_zoomfit), "Zoom fully fit (F)");
       g_signal_connect(G_OBJECT(btn_zoomfit), "clicked", G_CALLBACK(on_toolbar_zoomfit_button_clicked), (void *) 0);
+
+      GtkWidget * menu = gtk_menu_new();
+      gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(btn_zoomfit), menu);
+      GtkWidget * item;
+      
+      item = gtk_menu_item_new_with_label("Zoom horizontally fit (H)");
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+      g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(on_toolbar_zoomfit_button_clicked), (void *) 1);
+      
+      item = gtk_menu_item_new_with_label("Zoom vertically fit (V)");
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+      g_signal_connect(G_OBJECT(item), "activate", G_CALLBACK(on_toolbar_zoomfit_button_clicked), (void *) 2);
+
+      gtk_widget_show_all(menu);      
     }
   }
   
@@ -357,10 +375,15 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
     return 0;
   }
 
-  int x = KV_ENDIAN_CHECKER;
-  int host_endianness = KV_GET_FIRST_BYTE(&x);
-  int data_endianness = KV_BIG_ENDIAN;
+  /* endian checker */
+  //int data_endianness = KV_BIG_ENDIAN;
+  int data_endianness = KV_GET_FIRST_BYTE(dp);
+  dp += sizeof(uint32_t);
+  int host_checker = KV_ENDIAN_CHECKER;
+  int host_endianness = KV_GET_FIRST_BYTE(&host_checker);
   int do_swap_byte = (host_endianness != data_endianness);
+  //printf("data endian: %d, host endian: %d, do swap byte: %d\n", data_endianness, host_endianness, do_swap_byte);
+  
   /* rank */
   if (!do_swap_byte) {
     trace->rank = *((int *) dp);
@@ -394,10 +417,7 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
   dp += sizeof(long);
 
   
-  printf("  rank=%d\n"
-         "  start_t=%.0lf\n"
-         "  end_t  =%.0lf\n"
-         "  n=%ld\n",
+  printf("  rank=%d, t=(%.0lf,%.0lf, n=%ld\n",
          trace->rank, trace->start_t, trace->end_t, trace->n);
   
   /* e */
@@ -418,9 +438,11 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
       kv_swap_bytes(dp, &(trace->e[i].e), sizeof(int));
     }
     dp += sizeof(int);
+    /*
     if (i == 0 || i == trace->n - 1)
       printf("  e[%d]=(%.0lf,%d)\n",
              i, trace->e[i].t, trace->e[i].e);
+    */
   }
   return 1;
 }

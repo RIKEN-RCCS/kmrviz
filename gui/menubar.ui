@@ -13,9 +13,7 @@
               <object class="GtkMenuItem" id="exit">
                 <property name="use-underline">TRUE</property>
                 <property name="label">E_xit</property>
-                <!--
-                <signal name="activate" handler="on_menubar_export_activated"/>
-                -->
+                <signal name="activate" handler="on_menubar_file_exit_activated"/>
               </object>
             </child>
             
@@ -44,6 +42,18 @@
             </object></child>
             
             <child><object class="GtkSeparatorMenuItem" id="view_separator_1"></object></child>
+            
+            <child><object class="GtkMenuItem" id="zoomfit_hor">
+                <property name="use-underline">TRUE</property>
+                <property name="label">Zoom _horizontally fit</property>
+                <signal name="activate" handler="on_menubar_view_zoomfit_hor_activated"/>
+            </object></child>
+            
+            <child><object class="GtkMenuItem" id="zoomfit_ver">
+                <property name="use-underline">TRUE</property>
+                <property name="label">Zoom _vertically fit</property>
+                <signal name="activate" handler="on_menubar_view_zoomfit_ver_activated"/>
+            </object></child>
             
             <child><object class="GtkMenuItem" id="zoomfit_full">
                 <property name="use-underline">TRUE</property>

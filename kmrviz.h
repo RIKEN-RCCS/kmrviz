@@ -151,11 +151,13 @@ typedef struct kv_gui {
   /* On toolbar */
   struct {
     GtkToolItem * toolbox;
+    GtkToolItem * infobox;
   } ontoolbar;
 
   /* On menubar */
   struct {
     GtkCheckMenuItem * toolbox;
+    GtkCheckMenuItem * infobox;
   } onmenubar;
 
   /* Sideboxes */
@@ -163,6 +165,12 @@ typedef struct kv_gui {
     GtkWidget * sidebox;
     GtkWidget * align_start;
   } toolbox;
+  struct infobox {
+    GtkWidget * sidebox;
+    GtkWidget * type;
+    GtkWidget * start_t;
+    GtkWidget * end_t;
+  } infobox;
 } kv_gui_t;
 
 typedef struct kv_global_state {
@@ -172,6 +180,7 @@ typedef struct kv_global_state {
   kv_timeline_set_t TL[1];
   int align_start;
   int toolbox_shown;
+  int infobox_shown;
 } kv_global_state_t;
 
 
@@ -190,6 +199,8 @@ double kv_viewport_clip_get_bound_down(kv_viewport_t *);
 void kv_gui_init(kv_gui_t *);
 GtkWidget * kv_gui_get_main_window(kv_gui_t *);
 GtkWidget * kv_gui_get_toolbox_sidebox(kv_gui_t *);
+GtkWidget * kv_gui_get_infobox_sidebox(kv_gui_t *);
+void kv_gui_update_infobox(kv_timeline_box_t *);
 
 void kv_global_state_init(kv_global_state_t *);
 
@@ -223,5 +234,41 @@ kv_swap_bytes(void * input, void * output, int bytes) {
 #define KV_GET_FIRST_BYTE(x) ((uint8_t *) x)[0]
 #define KV_IS_BIG_ENDIAN(x) (KV_GET_FIRST_BYTE(x) == KV_BIG_ENDIAN)
 #define KV_IS_LITTLE_ENDIAN(x) (KV_GET_FIRST_BYTE(x) == KV_LITTLE_ENDIAN)
+
+_static_unused_ char *
+kv_trace_event_get_kind(kmr_trace_event_t e) {
+  switch (e) {
+  case kmr_trace_event_map_start:
+  case kmr_trace_event_map_end:
+    return "map";
+  case kmr_trace_event_shuffle_start:
+  case kmr_trace_event_shuffle_end:
+    return "shuffle";
+  case kmr_trace_event_reduce_start:
+  case kmr_trace_event_reduce_end:
+    return "reduce";
+  case kmr_trace_event_trace_start:
+  case kmr_trace_event_trace_end:
+    return "trace";
+  }
+  return NULL;
+}
+
+_static_unused_ char *
+kv_trace_event_get_type(kmr_trace_event_t e) {
+  switch (e) {
+  case kmr_trace_event_map_start:
+  case kmr_trace_event_shuffle_start:
+  case kmr_trace_event_reduce_start:
+  case kmr_trace_event_trace_start:
+    return "start";
+  case kmr_trace_event_map_end:
+  case kmr_trace_event_shuffle_end:
+  case kmr_trace_event_reduce_end:
+  case kmr_trace_event_trace_end:
+    return "end";
+  }
+  return NULL;
+}
 
 #endif /* _KMRVIZ_H */

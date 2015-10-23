@@ -102,6 +102,23 @@ kv_toggle_toolbox(int enable) {
   }
 }
 
+void
+kv_toggle_infobox(int enable) {
+  if (GS->infobox_shown == enable) return;
+  kv_gui_t * GUI = GS->GUI;
+  GtkWidget * sidebox = kv_gui_get_infobox_sidebox(GUI);
+  GS->infobox_shown = enable;
+  if (enable) {
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.infobox), TRUE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.infobox), TRUE);
+    gtk_box_pack_start(GTK_BOX(GS->GUI->left_sidebar), sidebox, FALSE, FALSE, 0);
+  } else {
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.infobox), FALSE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.infobox), FALSE);
+    gtk_container_remove(GTK_CONTAINER(GS->GUI->left_sidebar), sidebox);
+  }
+}
+
 static kv_timeline_box_t *
 kv_find_box_(kv_timeline_t * tl, kv_timeline_box_t * box, double x, double y, double ratio) {
   if (!box || x < box->x)
@@ -168,6 +185,16 @@ on_toolbar_toolbox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unuse
     kv_toggle_toolbox(1);
   } else {
     kv_toggle_toolbox(0);
+  }
+}
+
+static void
+on_toolbar_infobox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unused_ gpointer user_data) {
+  gboolean active = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(toolbtn));
+  if (active) {
+    kv_toggle_infobox(1);
+  } else {
+    kv_toggle_infobox(0);
   }
 }
 
@@ -278,6 +305,7 @@ on_darea_motion_event(_unused_ GtkWidget * widget, _unused_ GdkEventMotion * eve
       VP->last_hovered_box->focused = 0;
     box->focused = 1;
     VP->last_hovered_box = box;
+    kv_gui_update_infobox(box);
   }
   
   kv_viewport_queue_draw(VP);
@@ -339,6 +367,16 @@ on_menubar_view_toolbox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_
     kv_toggle_toolbox(1);
   } else {
     kv_toggle_toolbox(0);
+  }
+}
+
+G_MODULE_EXPORT void
+on_menubar_view_infobox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_ gpointer user_data) {
+  gboolean active = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem));
+  if (active) {
+    kv_toggle_infobox(1);
+  } else {
+    kv_toggle_infobox(0);
   }
 }
 

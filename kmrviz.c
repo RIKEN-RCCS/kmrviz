@@ -112,11 +112,18 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     gtk_widget_show_all(menubar);
     
     GtkWidget * item;
+    
     item = GTK_WIDGET(gtk_builder_get_object(builder, "exit"));
-    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE); 
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    
     item = GTK_WIDGET(gtk_builder_get_object(builder, "toolbox"));
     GUI->onmenubar.toolbox = GTK_CHECK_MENU_ITEM(item);
-    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_t, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE); 
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_t, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    
+    item = GTK_WIDGET(gtk_builder_get_object(builder, "infobox"));
+    GUI->onmenubar.infobox = GTK_CHECK_MENU_ITEM(item);
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_i, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    
     item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_full"));
     gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_f, 0, GTK_ACCEL_VISIBLE); 
   }
@@ -134,6 +141,16 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
       gtk_widget_set_tooltip_text(GTK_WIDGET(btn_settings), "Show toolbox (Ctrl+T)");
       gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn_settings), FALSE);
       g_signal_connect(G_OBJECT(btn_settings), "toggled", G_CALLBACK(on_toolbar_toolbox_button_toggled), NULL);
+    }
+
+    /* infobox button */
+    {
+      GtkToolItem * btn_info = GUI->ontoolbar.infobox = gtk_toggle_tool_button_new();
+      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_info, -1);
+      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_info), "dialog-info");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_info), "Show info box (Ctrl+I)");
+      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn_info), FALSE);
+      g_signal_connect(G_OBJECT(btn_info), "toggled", G_CALLBACK(on_toolbar_infobox_button_toggled), NULL);
     }
 
     /* zoomfit button */
@@ -192,11 +209,13 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
 
   GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
   gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
-  gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 5);
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
 
-  GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  GtkWidget * box;
+  
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 5);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
 
   GtkWidget * align_start = GUI->toolbox.align_start = gtk_check_button_new_with_label("Align start times");
   gtk_box_pack_start(GTK_BOX(box), align_start, FALSE, FALSE, 0);
@@ -205,6 +224,55 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
 
   gtk_widget_show_all(sidebox);
   return sidebox;
+}
+
+GtkWidget *
+kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
+  if (GUI->infobox.sidebox)
+    return GUI->infobox.sidebox;
+  GtkWidget * sidebox = GUI->infobox.sidebox = gtk_frame_new("Info box");
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
+  g_object_ref(sidebox);
+
+  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_widget_set_size_request(GTK_WIDGET(sidebox_box), 190, -1);
+  gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
+
+  GtkWidget * box;
+  
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  GtkWidget * type = GUI->infobox.type = gtk_label_new("Kind:");
+  gtk_box_pack_start(GTK_BOX(box), type, FALSE, FALSE, 0);
+
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  GtkWidget * start_t = GUI->infobox.start_t = gtk_label_new("Start time:");
+  gtk_box_pack_start(GTK_BOX(box), start_t, FALSE, FALSE, 0);
+
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  GtkWidget * end_t = GUI->infobox.end_t = gtk_label_new("End time:");
+  gtk_box_pack_start(GTK_BOX(box), end_t, FALSE, FALSE, 0);
+
+  gtk_widget_show_all(sidebox);
+  return sidebox;
+}
+
+void
+kv_gui_update_infobox(kv_timeline_box_t * box) {
+  if (!GS->infobox_shown) return;
+  char s[KV_STRING_LENGTH];
+  sprintf(s, "Kind: %s", kv_trace_event_get_kind(box->start_e->e));
+  gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.type), s);
+  sprintf(s, "Start time: %.0lf", box->start_e->t - GS->TS->start_t);
+  gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.start_t), s);
+  sprintf(s, "End time: %.0lf", box->end_e->t - GS->TS->start_t);
+  gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.end_t), s);
 }
 
 void

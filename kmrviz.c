@@ -269,18 +269,21 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(box), 3);
   GtkWidget * start_t = GUI->infobox.start_t = gtk_label_new("Start time:");
+  gtk_label_set_selectable(GTK_LABEL(start_t), TRUE);
   gtk_box_pack_start(GTK_BOX(box), start_t, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(box), 3);
   GtkWidget * end_t = GUI->infobox.end_t = gtk_label_new("End time:");
+  gtk_label_set_selectable(GTK_LABEL(end_t), TRUE);
   gtk_box_pack_start(GTK_BOX(box), end_t, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
   gtk_container_set_border_width(GTK_CONTAINER(box), 3);
   GtkWidget * span = GUI->infobox.span = gtk_label_new("Span:");
+  gtk_label_set_selectable(GTK_LABEL(span), TRUE);
   gtk_box_pack_start(GTK_BOX(box), span, FALSE, FALSE, 0);
 
   gtk_widget_show_all(sidebox);

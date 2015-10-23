@@ -9,7 +9,9 @@ const char * const KV_COLORS[] =
    "coral", "cornflowerblue", "cornsilk4", "darkolivegreen1", "darkorange1",
    "khaki3", "lavenderblush2", "lemonchiffon1", "lightblue1", "lightcyan",
    "lightgoldenrod", "lightgoldenrodyellow", "lightpink2", "lightsalmon2", "lightskyblue1",
-   "lightsteelblue3", "lightyellow3", "maroon1", "yellowgreen"};
+   "lightsteelblue3", "lightyellow3", "maroon1", "yellowgreen", "red",
+   "blue"
+  };
 
 #include "control.c"
 
@@ -382,10 +384,19 @@ kv_replace_asterisk(kv_trace_set_t * TS, char * filename) {
     }
     *pos = '*';
   } else if (*pos == '\0') {
-    if (kv_read_trace(filename, &TS->traces[TS->n])) {
+    kv_trace_t * trace = (kv_trace_t *) malloc(  sizeof(kv_trace_t) );
+    if (kv_read_trace(filename, trace)) {
+      if (TS->head == NULL) {
+        TS->head = TS->tail = trace;
+      } else {
+        trace->next = NULL;
+        TS->tail->next = trace;
+        TS->tail = trace;
+      }
       TS->n++;
       return 1;
     }
+    free(trace);
   }
   return 0;
 }
@@ -393,8 +404,8 @@ kv_replace_asterisk(kv_trace_set_t * TS, char * filename) {
 static void
 kv_read_traces(int argc, char * argv[], kv_trace_set_t * TS) {
   /* read traces */
-  TS->traces = (kv_trace_t *) malloc( (argc - 1) * sizeof(kv_trace_t) );
   TS->n = 0;
+  TS->head = TS->tail = NULL;
   int i;
   for (i = 1; i < argc; i++) {
     char * filename = argv[i];
@@ -406,27 +417,188 @@ kv_read_traces(int argc, char * argv[], kv_trace_set_t * TS) {
   TS->start_t = -1;
   TS->end_t = 0;
   TS->t_span = 0;
-  for (i = 0; i < TS->n; i++) {
-    kv_trace_t * trace = &TS->traces[i];
+  kv_trace_t * trace = TS->head;
+  while (trace) {
     if (TS->start_t < 0 || trace->start_t < TS->start_t)
       TS->start_t = trace->start_t;
     if (trace->end_t > TS->end_t)
       TS->end_t = trace->end_t;
     if (trace->end_t - trace->start_t > TS->t_span)
       TS->t_span = trace->end_t - trace->start_t;
+    trace = trace->next;
   }
   printf("min start=%.0lf\nmax end  =%.0lf\n", TS->start_t, TS->end_t);
 
   /* adjust all t based on TS->start_t */
   /*
-  for (i = 0; i < TS->n; i++) {
-    TS->traces[i].start_t -= TS->start_t;
-    TS->traces[i].end_t -= TS->start_t;
+  kv_trace_t * trace = TS->head;
+  while (trace) {
+    trace->start_t -= TS->start_t;
+    trace->end_t -= TS->start_t;
     int j;
-    for (j = 0; j < TS->traces[i].n; j++)      
-      TS->traces[i].e[j].t -= TS->start_t;
+    for (j = 0; j < trace->n; j++)
+      trace->e[j].t -= TS->start_t;
+    trace = trace->next;
   }
   */
+}
+
+static void
+kv_timeline_insert_slash(kv_timeline_t * tl, kv_trace_entry_t * e) {
+  kv_timeline_slash_t * slash = (kv_timeline_slash_t *) malloc( sizeof(kv_timeline_slash_t) );
+  slash->e = e;
+  slash->next = NULL;
+  if (!tl->slash) {
+    tl->slash = slash;
+    return;
+  } else if (tl->slash->e->t > slash->e->t) {
+    slash->next = tl->slash;
+    tl->slash = slash;
+    return;
+  }
+  kv_timeline_slash_t * s = tl->slash;
+  while (s->next && s->next->e->t <= slash->e->t)
+    s = s->next;
+  slash->next = s->next;
+  s->next = slash;
+}
+
+static void
+kv_timeline_box_init(kv_timeline_box_t * box) {
+  memset(box, 0, sizeof(kv_timeline_box_t));
+}
+
+static void
+kv_insert_box(kv_timeline_box_t ** boxlist, kv_timeline_box_t * mybox, kv_trace_entry_t * e1, kv_trace_entry_t * e2) {
+  kv_timeline_box_t * box;
+  if (mybox) {
+    box = mybox;
+  } else {     
+    box = (kv_timeline_box_t *) malloc( sizeof(kv_timeline_box_t) );
+    kv_timeline_box_init(box);
+    box->start_e = e1;
+    box->end_e = e2;
+    box->child = box->next = NULL;
+  }
+  if (!*boxlist) {
+    *boxlist = box;
+    return;
+  } else if ((*boxlist)->start_e->t > box->start_e->t) {
+    box->next = *boxlist;
+    (*boxlist) = box;
+    return;
+  }
+  kv_timeline_box_t * b = *boxlist;
+  while (b->next && b->next->start_e->t <= box->start_e->t)
+    b = b->next;
+  box->next = b->next;
+  b->next = box;
+}
+
+static void
+kv_collect_boxes(kv_timeline_box_t * box) {
+  while (box) {
+    kv_timeline_box_t * b = box->next;
+    while (b && b->start_e->t < box->end_e->t) {
+      box->next = b->next;
+      b->next = NULL;
+      kv_insert_box(&(box->child), b, NULL, NULL);
+      b = box->next;
+    }
+    kv_collect_boxes(box->child);
+    box = box->next;
+  }
+}
+
+static void
+kv_build_timelines(kv_trace_set_t * TS, kv_timeline_set_t * TL) {
+  TL->TS = TS;
+  TL->n = 0;
+  TL->head = TL->tail = NULL;
+  kv_trace_t * trace = TS->head;
+  while (trace) {
+    kv_timeline_t * tl = (kv_timeline_t *) malloc( sizeof(kv_timeline_t) );
+    tl->trace = trace;
+    tl->box = NULL;
+    tl->slash = NULL;
+    tl->next = NULL;
+
+    kv_trace_entry_t * e;
+    e = (kv_trace_entry_t *) malloc( sizeof(kv_trace_entry_t) );
+    e->t = trace->start_t;
+    e->e = kmr_trace_event_trace_start;
+    kv_timeline_insert_slash(tl, e);
+    e = (kv_trace_entry_t *) malloc( sizeof(kv_trace_entry_t) );
+    e->t = trace->end_t;
+    e->e = kmr_trace_event_trace_end;
+    kv_timeline_insert_slash(tl, e);
+    
+    int ibase = 0;
+    int i = 0; /* close */
+    while (i < trace->n) {
+      while (trace->e[i].e % 2 != 1 && i < trace->n)
+        i++;
+      int j = i - 1; /* open */
+      while (j >= ibase) {
+        while (trace->e[j].e != trace->e[i].e - 1) {
+          kv_timeline_insert_slash(tl, &trace->e[j]);
+          j--;
+        }
+        if (j >= ibase) {
+          kv_insert_box(&(tl->box), NULL, &trace->e[j], &trace->e[i]);
+          i++;
+          j--;
+        } else {
+          kv_timeline_insert_slash(tl, &trace->e[i]);
+          i++;
+          break;
+        }
+      }
+      ibase = i;
+    }
+
+    kv_collect_boxes(tl->box);
+    
+    if (TL->head == NULL) {
+      TL->head = TL->tail = tl;
+    } else {
+      TL->tail->next = tl;
+      TL->tail = tl;
+    }
+    TL->n++;
+    trace = trace->next;
+  }
+}
+
+static void
+kv_layout_slash(kv_timeline_t * tl, kv_timeline_slash_t * slash) {
+  if (!slash) return;
+  slash->x = KV_TIMELINE_START_X + kv_scale_down(tl->trace, slash->e->t);
+  kv_layout_slash(tl, slash->next);
+}
+
+static void
+kv_layout_box(kv_timeline_t * tl, kv_timeline_box_t * box) {
+  if (!box) return;
+  box->x = KV_TIMELINE_START_X + kv_scale_down(tl->trace, box->start_e->t);
+  box->w = kv_scale_down_span(box->end_e->t - box->start_e->t);
+  kv_layout_box(tl, box->child);
+  kv_layout_box(tl, box->next);
+}
+
+void
+kv_layout_timelines(kv_timeline_set_t * TL) {
+  double y = 0.0;
+  double h = 2 * KV_RADIUS;
+  kv_timeline_t * tl = TL->head;
+  while (tl) {
+    tl->y = y;
+    tl->h = h;
+    kv_layout_slash(tl, tl->slash);
+    kv_layout_box(tl, tl->box);
+    y += 2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES;
+    tl = tl->next;
+  }
 }
 
 int
@@ -439,6 +611,8 @@ main(int argc, char * argv[]) {
 
   /* Data */
   kv_read_traces(argc, argv, GS->TS);
+  kv_build_timelines(GS->TS, GS->TL);
+  kv_layout_timelines(GS->TL);
 
   /* Open GUI */
   kv_open_gui(argc, argv);

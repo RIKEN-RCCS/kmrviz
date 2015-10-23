@@ -102,6 +102,42 @@ kv_toggle_toolbox(int enable) {
   }
 }
 
+static kv_timeline_box_t *
+kv_find_box_(kv_timeline_t * tl, kv_timeline_box_t * box, double x, double y, double ratio) {
+  if (!box || x < box->x)
+    return NULL;
+  else if (x > box->x + box->w)
+    return kv_find_box_(tl, box->next, x, y, ratio);
+  else if (x > box->x && x < box->x + box->w) {
+    double ychild = tl->y;
+    double hchild = tl->h;    
+    double slip = hchild * (1 - ratio);
+    ychild += slip / 2.0;
+    hchild -= slip;
+    kv_timeline_box_t * b = NULL;
+    if (y > ychild && y < ychild + hchild)
+      b = kv_find_box_(tl, box->child, x, y, ratio * KV_NESTED_DECREASE_RATE);
+    if (b)
+      return b;
+    return box;
+  }
+  return NULL;
+}
+
+static kv_timeline_box_t *
+kv_find_box(kv_timeline_set_t * TL, double x, double y) {
+  kv_timeline_t * tl = TL->head;
+  while (tl) {
+    if (y >= tl->y && y <= tl->y + tl->h) {
+      kv_timeline_box_t * b = kv_find_box_(tl, tl->box, x, y, 1.0);
+      if (b)
+        return b;
+    }
+    tl = tl->next;
+  }
+  return NULL;
+}
+
 /****************** end of Processes *******************************/
 
 
@@ -226,9 +262,25 @@ on_darea_motion_event(_unused_ GtkWidget * widget, _unused_ GdkEventMotion * eve
     VP->accdisy += deltay;
     VP->pressx = event->x;
     VP->pressy = event->y;
-    kv_viewport_queue_draw(VP);
   }
   
+  /* Hovering */
+  double ox = (event->x - VP->x) / VP->zoom_ratio_x;
+  double oy = (event->y - VP->y) / VP->zoom_ratio_y;
+  kv_timeline_box_t * box = kv_find_box(GS->TL, ox, oy);
+  if (!box) {
+    if (VP->last_hovered_box) {
+      VP->last_hovered_box->focused = 0;
+      VP->last_hovered_box = NULL;
+    }
+  } else if (box != VP->last_hovered_box) {
+    if (VP->last_hovered_box)
+      VP->last_hovered_box->focused = 0;
+    box->focused = 1;
+    VP->last_hovered_box = box;
+  }
+  
+  kv_viewport_queue_draw(VP);
   return TRUE;
 }
 
@@ -276,6 +328,7 @@ on_toolbox_align_start_toggled(GtkWidget * widget, _unused_ gpointer user_data) 
   } else {
     GS->align_start = 0;
   }
+  kv_layout_timelines(GS->TL);
   kv_viewport_queue_draw(GS->VP);
 }
 

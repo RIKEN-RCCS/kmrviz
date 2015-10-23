@@ -38,9 +38,10 @@
 #define KV_SAFE_CLICK_RANGE 2
 #define KV_ZOOM_INCREMENT 1.20
 #define KV_LINE_WIDTH 2.0
-#define KV_NUM_COLORS 34
+#define KV_NUM_COLORS 36
 #define KV_GAP_BETWEEN_TIMELINES 2
 #define KV_TIMELINE_START_X 55
+#define KV_NESTED_DECREASE_RATE 0.9
 
 /*-- Copy from kmrtrace.h --*/
 typedef enum {
@@ -50,13 +51,17 @@ typedef enum {
   kmr_trace_event_shuffle_end,
   kmr_trace_event_reduce_start,
   kmr_trace_event_reduce_end,
-  
+  kmr_trace_event_trace_start,
+  kmr_trace_event_trace_end,
+  /*
   kmr_trace_event_mapper_start,
   kmr_trace_event_mapper_end,
   kmr_trace_event_reducer_start,
   kmr_trace_event_reducer_end,
+  */
 } kmr_trace_event_t;
 /*--------*/
+
 
 typedef struct kv_trace_entry {
   double t;
@@ -69,15 +74,51 @@ typedef struct kv_trace {
   double end_t;
   long n;
   kv_trace_entry_t * e;
+  struct kv_trace * next;
 } kv_trace_t;
 
 typedef struct kv_trace_set {
-  int n;
-  kv_trace_t * traces;
   double start_t;
   double end_t;
   double t_span;
+  int n;
+  kv_trace_t * head;
+  kv_trace_t * tail;
 } kv_trace_set_t;
+
+
+typedef struct kv_timeline_slash {
+  kv_trace_entry_t * e;
+  double x;
+  struct kv_timeline_slash * next;
+} kv_timeline_slash_t;
+
+typedef struct kv_timeline_box {
+  kv_trace_entry_t * start_e;
+  kv_trace_entry_t * end_e;
+  double x;
+  double w;
+  struct kv_timeline_box * child;
+  struct kv_timeline_box * next;
+  int focused;
+} kv_timeline_box_t;
+
+typedef struct kv_timeline {
+  kv_trace_t * trace;
+  double y;
+  double h;
+  kv_timeline_box_t * box;
+  kv_timeline_slash_t * slash;
+  struct kv_timeline * next;
+} kv_timeline_t;
+
+typedef struct kv_timeline_set {
+  kv_trace_set_t * TS;
+  int n;
+  kv_timeline_t * head;
+  kv_timeline_t * tail;
+} kv_timeline_set_t;
+
 
 typedef struct kv_viewport {
   double vpw, vph;
@@ -88,6 +129,7 @@ typedef struct kv_viewport {
   int drag_on;
   double pressx, pressy;
   double accdisx, accdisy;
+  kv_timeline_box_t * last_hovered_box;
 } kv_viewport_t;
 
 typedef struct kv_gui {
@@ -127,6 +169,7 @@ typedef struct kv_global_state {
   kv_gui_t GUI[1];
   kv_viewport_t VP[1];
   kv_trace_set_t TS[1];
+  kv_timeline_set_t TL[1];
   int align_start;
   int toolbox_shown;
 } kv_global_state_t;
@@ -149,6 +192,8 @@ GtkWidget * kv_gui_get_main_window(kv_gui_t *);
 GtkWidget * kv_gui_get_toolbox_sidebox(kv_gui_t *);
 
 void kv_global_state_init(kv_global_state_t *);
+
+void kv_layout_timelines(kv_timeline_set_t *);
 
 
 /* draw.c */

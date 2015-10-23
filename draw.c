@@ -57,48 +57,58 @@ kv_viewport_clip_trim(kv_viewport_t * VP, double * xx, double * yy, double * ww,
 }
 
 static void
-kv_draw_slash(cairo_t * cr, kv_viewport_t * VP, kv_trace_t * trace, kv_trace_entry_t * e) {
-  int i = trace - GS->TS->traces;
-  double y = i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-  double x = KV_TIMELINE_START_X + kv_scale_down(trace, e->t);
-  double h = 2 * KV_RADIUS;
+kv_draw_slash(cairo_t * cr, kv_viewport_t * VP, kv_timeline_t * tl, kv_timeline_slash_t * s) {
+  if (!s) return;
+  double x = s->x;
+  double y = tl->y;
   double w = 0.0;
-  GdkRGBA color;
-  kv_lookup_color(e->e / 2, &color.red, &color.green, &color.blue, &color.alpha);
+  double h = tl->h;
 
   if (kv_viewport_clip_trim(VP, &x, &y, &w, &h)) {
-    cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 1.0);
     cairo_set_line_width(cr, KV_LINE_WIDTH / VP->zoom_ratio_x);
     cairo_move_to(cr, x, y);
     cairo_line_to(cr, x, y + h);
     cairo_stroke(cr);
   }
+  kv_draw_slash(cr, VP, tl, s->next);
 }
 
 static void
-kv_draw_box(cairo_t * cr, kv_viewport_t * VP, kv_trace_t * trace, kv_trace_entry_t * e1, kv_trace_entry_t * e2) {
-  assert(e1->e + 1 == e2->e);
+kv_draw_box(cairo_t * cr, kv_viewport_t * VP, kv_timeline_t * tl, kv_timeline_box_t * box, double ratio) {
+  if (!box) return;
   GdkRGBA color;
-  kv_lookup_color(e1->e / 2, &color.red, &color.green, &color.blue, &color.alpha);
-  
-  int i = trace - GS->TS->traces;
-  double x = KV_TIMELINE_START_X + kv_scale_down(trace, e1->t);
-  double y = i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-  double w = kv_scale_down_span(e2->t - e1->t);
-  double h = 2 * KV_RADIUS;
+  kv_lookup_color(box->start_e->e / 2, &color.red, &color.green, &color.blue, &color.alpha);
 
+  double x = box->x;
+  double y = tl->y;
+  double w = box->w;
+  double h = tl->h;
+
+  double slip = h * (1 - ratio);
+  y += slip / 2.0;
+  h -= slip;  
+  
   if (kv_viewport_clip_trim(VP, &x, &y, &w, &h)) {
-    cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha * 0.6);
+    cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
     cairo_set_line_width(cr, KV_LINE_WIDTH);// / VP->zoom_ratio_x);
     cairo_rectangle(cr, x, y, w, h);
-    cairo_fill(cr);
+    if (!box->focused)
+      cairo_fill(cr);
+    else {
+      cairo_fill_preserve(cr);
+      cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+      cairo_set_line_width(cr, KV_LINE_WIDTH / VP->zoom_ratio_x);
+      cairo_stroke(cr);
+    }        
   }
+  kv_draw_box(cr, VP, tl, box->next, ratio);
+  kv_draw_box(cr, VP, tl, box->child, ratio * KV_NESTED_DECREASE_RATE);
 }
 
 void
 kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
-  kv_trace_set_t * TS = GS->TS;
-  //printf("duration %.0lf\n", TS->end_t - TS->start_t);
+  kv_timeline_set_t * TL = GS->TL;
   
   cairo_save(cr);
   cairo_rectangle(cr, 0, 0, VP->vpw, VP->vph);
@@ -116,22 +126,23 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
     double x, y;
     x = 0;
     y = KV_RADIUS * 1.3;
-    int i;
-    for (i = 0; i < TS->n; i++) {
-      sprintf(s, "Rank %d", TS->traces[i].rank);
+    kv_timeline_t * tl = TL->head;
+    while (tl) {
+      sprintf(s, "Rank %d", tl->trace->rank);
       cairo_move_to(cr, x, y);
       cairo_show_text(cr, s);
       y += 2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES;
+      tl = tl->next;
     }
 
     /* Lines */
     {
       cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-      cairo_set_line_width(cr, KV_LINE_WIDTH / 2 / VP->zoom_ratio_x);
-      int i;
-      for (i = 0; i < TS->n; i++) {
-        kv_trace_t * trace = &TS->traces[i];
-        double y = KV_RADIUS + i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
+      cairo_set_line_width(cr, KV_LINE_WIDTH / 5 / VP->zoom_ratio_x);
+      double y = KV_RADIUS;
+      kv_timeline_t * tl = TL->head;
+      while (tl) {
+        kv_trace_t * trace = tl->trace;
         double x = KV_TIMELINE_START_X + kv_scale_down(trace, trace->start_t);
         double w = kv_scale_down_span(trace->end_t - trace->start_t);
         double h = 0.0;
@@ -140,60 +151,19 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
             cairo_line_to(cr, x + w, y);
             cairo_stroke(cr);
         }
+        y += 2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES;
+        tl = tl->next;
       }
     }
   }
 
-  /* Events */
-  double basex = KV_TIMELINE_START_X;
+  /* Timelines: boxes & slashes */
   {
-    double x, y;
-    double r = KV_RADIUS;
-    int i;
-    for (i = 0; i < TS->n; i++) {
-      y = KV_RADIUS + i * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES);
-      kv_trace_t * trace = &TS->traces[i];
-      
-      /* trace's start, end */
-      cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-      cairo_set_line_width(cr, KV_LINE_WIDTH / VP->zoom_ratio_x);
-      x = basex + kv_scale_down(trace, trace->start_t);
-      cairo_move_to(cr, x, y - r);
-      cairo_line_to(cr, x, y + r);
-      cairo_stroke(cr);
-      x = basex + kv_scale_down(trace, trace->end_t);
-      cairo_move_to(cr, x, y - r);
-      cairo_line_to(cr, x, y + r);
-      cairo_stroke(cr);
-      
-      /* trace's events */
-      /*
-      int j;
-      for (j = 0; j < trace->n; j++) {
-        kv_trace_entry_t * e = &trace->e[j];
-        kv_draw_slash(cr, VP, trace, e);
-      }
-      */
-
-      /* trace's events */
-      int jb = 0;
-      int j = 0;
-      while (j < trace->n) {
-        while (trace->e[j].e % 2 != 1 && j < trace->n)
-          j++;
-        int jj = j - 1;
-        while (j < trace->n && jj >= jb) {
-          while (trace->e[jj].e != trace->e[j].e - 1) {
-            kv_draw_slash(cr, VP, trace, &trace->e[jj]);
-            jj--;
-          }
-          if (jj >= jb)
-            kv_draw_box(cr, VP, trace, &trace->e[jj], &trace->e[j]);
-          j++;
-          jj--;
-        }
-        jb = j;
-      }
+    kv_timeline_t * tl = TL->head;
+    while (tl) {
+      kv_draw_slash(cr, VP, tl, tl->slash);
+      kv_draw_box(cr, VP, tl, tl->box, 1.0);
+      tl = tl->next;
     }
   }
 

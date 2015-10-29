@@ -51,6 +51,11 @@ typedef enum {
   kmr_trace_event_shuffle_end,
   kmr_trace_event_reduce_start,
   kmr_trace_event_reduce_end,
+  kmr_trace_event_map_once_start,
+  kmr_trace_event_map_once_end,
+  kmr_trace_event_sort_start,
+  kmr_trace_event_sort_end,
+  
   kmr_trace_event_trace_start,
   kmr_trace_event_trace_end,
   /*
@@ -66,6 +71,8 @@ typedef enum {
 typedef struct kv_trace_entry {
   double t;
   int e;
+  long kvi_element_count;
+  long kvo_element_count;
 } kv_trace_entry_t;
 
 typedef struct kv_trace {
@@ -171,6 +178,8 @@ typedef struct kv_gui {
     GtkWidget * start_t;
     GtkWidget * end_t;
     GtkWidget * span;
+    GtkWidget * kvi_ne;
+    GtkWidget * kvo_ne;
   } infobox;
 } kv_gui_t;
 
@@ -248,6 +257,12 @@ kv_trace_event_get_kind(kmr_trace_event_t e) {
   case kmr_trace_event_reduce_start:
   case kmr_trace_event_reduce_end:
     return "reduce";
+  case kmr_trace_event_map_once_start:
+  case kmr_trace_event_map_once_end:
+    return "map_once";
+  case kmr_trace_event_sort_start:
+  case kmr_trace_event_sort_end:
+    return "sort";
   case kmr_trace_event_trace_start:
   case kmr_trace_event_trace_end:
     return "trace";
@@ -262,11 +277,15 @@ kv_trace_event_get_type(kmr_trace_event_t e) {
   case kmr_trace_event_shuffle_start:
   case kmr_trace_event_reduce_start:
   case kmr_trace_event_trace_start:
+  case kmr_trace_event_map_once_start:
+  case kmr_trace_event_sort_start:
     return "start";
   case kmr_trace_event_map_end:
   case kmr_trace_event_shuffle_end:
   case kmr_trace_event_reduce_end:
   case kmr_trace_event_trace_end:
+  case kmr_trace_event_map_once_end:
+  case kmr_trace_event_sort_end:
     return "end";
   }
   return NULL;

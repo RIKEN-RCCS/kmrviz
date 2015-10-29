@@ -3,14 +3,14 @@
 kv_global_state_t GS[1];
 
 const char * const KV_COLORS[] =
-  {"orange", "magenta", "cyan", "azure", "green",
-   "gold", "brown1", "burlywood1", "peachpuff", "aquamarine",
+  {"orange", "magenta", "cyan", "gold", "blue",
+   "azure", "brown1", "burlywood1", "peachpuff", "aquamarine",
    "chartreuse", "skyblue", "burlywood", "cadetblue", "chocolate",
-   "coral", "cornflowerblue", "cornsilk4", "darkolivegreen1", "darkorange1",
+   "green", "cornflowerblue", "cornsilk4", "darkolivegreen1", "darkorange1",
    "khaki3", "lavenderblush2", "lemonchiffon1", "lightblue1", "lightcyan",
    "lightgoldenrod", "lightgoldenrodyellow", "lightpink2", "lightsalmon2", "lightskyblue1",
    "lightsteelblue3", "lightyellow3", "maroon1", "yellowgreen", "red",
-   "blue"
+   "coral"
   };
 
 #include "control.c"
@@ -286,6 +286,20 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   gtk_label_set_selectable(GTK_LABEL(span), TRUE);
   gtk_box_pack_start(GTK_BOX(box), span, FALSE, FALSE, 0);
 
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  GtkWidget * kvi_ne = GUI->infobox.kvi_ne = gtk_label_new("KVI:");
+  gtk_label_set_selectable(GTK_LABEL(kvi_ne), TRUE);
+  gtk_box_pack_start(GTK_BOX(box), kvi_ne, FALSE, FALSE, 0);
+
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  GtkWidget * kvo_ne = GUI->infobox.kvo_ne = gtk_label_new("KVO:");
+  gtk_label_set_selectable(GTK_LABEL(kvo_ne), TRUE);
+  gtk_box_pack_start(GTK_BOX(box), kvo_ne, FALSE, FALSE, 0);
+
   gtk_widget_show_all(sidebox);
   return sidebox;
 }
@@ -294,14 +308,24 @@ void
 kv_gui_update_infobox(kv_timeline_box_t * box) {
   if (!GS->infobox_shown) return;
   char s[KV_STRING_LENGTH];
+  
   sprintf(s, "Kind: %s", kv_trace_event_get_kind(box->start_e->e));
   gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.type), s);
+  
   sprintf(s, "Start time: %.0lf", box->start_e->t - GS->TS->start_t);
   gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.start_t), s);
+  
   sprintf(s, "End time: %.0lf", box->end_e->t - GS->TS->start_t);
   gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.end_t), s);
+  
   sprintf(s, "Span: %.0lf", box->end_e->t - box->start_e->t);
   gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.span), s);
+  
+  sprintf(s, "KVI: %ld -> %ld", box->start_e->kvi_element_count, box->end_e->kvi_element_count);
+  gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.kvi_ne), s);
+  
+  sprintf(s, "KVO: %ld -> %ld", box->start_e->kvo_element_count, box->end_e->kvo_element_count);
+  gtk_label_set_text(GTK_LABEL(GS->GUI->infobox.kvo_ne), s);
 }
 
 void
@@ -346,7 +370,7 @@ kv_read_trace_txt(char * filename, kv_trace_t * trace) {
   trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
   int i;
   for (i = 0; i < trace->n; i++) {
-    fscanf(fs, "event %d at t=%lf\n", &(trace->e[i].e), &(trace->e[i].t));
+    fscanf(fs, "event %d at t=%lf, element count=(%ld,%ld)\n", &(trace->e[i].e), &(trace->e[i].t), &(trace->e[i].kvi_element_count), &(trace->e[i].kvo_element_count));
     if (i == 0 || i == trace->n - 1)
       printf("  e[%d]=(%.0lf,%d)\n",
              i, trace->e[i].t, trace->e[i].e);
@@ -420,7 +444,7 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
   dp += sizeof(long);
 
   
-  printf("  rank=%d, t=(%.0lf,%.0lf, n=%ld\n",
+  printf("  rank=%d, t=(%.0lf,%.0lf), n=%ld\n",
          trace->rank, trace->start_t, trace->end_t, trace->n);
   
   /* e */
@@ -434,6 +458,20 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
       kv_swap_bytes(dp, &(trace->e[i].t), sizeof(double));
     }
     dp += sizeof(double);
+    /* e.kvi_element_count */
+    if (!do_swap_byte) {
+      trace->e[i].kvi_element_count = *((long *) dp);
+    } else {
+      kv_swap_bytes(dp, &(trace->e[i].kvi_element_count), sizeof(long));
+    }
+    dp += sizeof(long);
+    /* e.kvo_element_count */
+    if (!do_swap_byte) {
+      trace->e[i].kvo_element_count = *((long *) dp);
+    } else {
+      kv_swap_bytes(dp, &(trace->e[i].kvo_element_count), sizeof(long));
+    }
+    dp += sizeof(long);
     /* e.e */
     if (!do_swap_byte) {
       trace->e[i].e = *((int *) dp);
@@ -634,28 +672,20 @@ kv_build_timelines(kv_trace_set_t * TS, kv_timeline_set_t * TL) {
     e->e = kmr_trace_event_trace_end;
     kv_timeline_insert_slash(tl, e);
     
-    int ibase = 0;
     int i = 0; /* close */
     while (i < trace->n) {
       while (trace->e[i].e % 2 != 1 && i < trace->n)
         i++;
       int j = i - 1; /* open */
-      while (j >= ibase) {
-        while (trace->e[j].e != trace->e[i].e - 1) {
-          kv_timeline_insert_slash(tl, &trace->e[j]);
+      while (j >= 0) {
+        while (trace->e[j].e != trace->e[i].e - 1)
           j--;
-        }
-        if (j >= ibase) {
+        if (j >= 0) {
           kv_insert_box(&(tl->box), NULL, &trace->e[j], &trace->e[i]);
-          i++;
-          j--;
-        } else {
-          kv_timeline_insert_slash(tl, &trace->e[i]);
           i++;
           break;
         }
       }
-      ibase = i;
     }
 
     kv_collect_boxes(tl->box);

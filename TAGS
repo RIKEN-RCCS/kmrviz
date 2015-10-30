@@ -1,0 +1,212 @@
+
+control.c,953
+kv_zoom(4,83
+kv_zoomfit_hor_(17,468
+kv_zoomfit_hor(42,1223
+kv_zoomfit_ver_(48,1382
+kv_zoomfit_ver(64,1851
+kv_zoomfit_full(70,2003
+kv_toggle_toolbox(89,2428
+kv_toggle_infobox(106,3174
+kv_find_box_(123,3942
+kv_find_box(145,4604
+on_window_key_event(165,5064
+on_toolbar_toolbox_button_toggled(182,5467
+on_toolbar_infobox_button_toggled(192,5758
+on_toolbar_zoomfit_button_clicked(202,6049
+on_darea_draw_event(218,6363
+on_darea_scroll_event(225,6563
+on_darea_button_event(241,7130
+on_darea_motion_event(290,8608
+on_darea_configure_event(327,9626
+on_darea_key_press_event(335,9868
+on_toolbox_align_start_toggled(364,10616
+on_toolbox_legend_toggled(375,10908
+on_menubar_file_exit_activated(385,11173
+on_menubar_view_toolbox_activated(390,11311
+on_menubar_view_infobox_activated(400,11604
+on_menubar_view_zoomfit_hor_activated(410,11897
+on_menubar_view_zoomfit_ver_activated(415,12049
+on_menubar_view_zoomfit_full_activated(420,12201
+
+draw.c,170
+kv_scale_down_span(4,28
+kv_scale_down(9,89
+kv_lookup_color(17,292
+kv_viewport_clip_trim(27,555
+kv_draw_slash(60,1410
+kv_draw_box(78,1908
+kv_viewport_draw(110,2898
+
+kmrviz.c,901
+kv_global_state_t GS[GS3,21
+const char * const KV_COLORS[KV_COLORS5,47
+kv_viewport_init(19,631
+kv_viewport_queue_draw(51,2155
+kv_viewport_clip_get_bound_left(56,2246
+kv_viewport_clip_get_bound_right(61,2351
+kv_viewport_clip_get_bound_up(66,2463
+kv_viewport_clip_get_bound_down(71,2566
+kv_gui_init(76,2675
+kv_gui_get_main_window(81,2756
+kv_gui_get_toolbox_sidebox(221,9530
+kv_gui_get_infobox_sidebox(257,11130
+kv_gui_update_infobox(317,13831
+kv_global_state_init(341,14790
+kv_open_gui(350,14994
+kv_read_trace_txt(363,15325
+kv_read_trace_bin(393,16366
+kv_read_trace(510,19469
+kv_replace_asterisk(527,19913
+kv_read_traces(562,20692
+kv_timeline_insert_slash(604,21776
+kv_timeline_box_init(624,22312
+kv_insert_box(629,22420
+kv_collect_boxes(656,23137
+kv_build_timelines(671,23486
+kv_layout_slash(738,25224
+kv_layout_box(745,25438
+kv_layout_timelines(754,25732
+main(769,26051
+
+kmrviz.h,4387
+#define _KMRVIZ_H6,66
+#define _unused_ 32,503
+#define _static_unused_ 33,544
+#define KV_STRING_LENGTH 35,600
+#define KV_RADIUS 36,629
+#define KV_MARGIN_WHEN_ZOOMFIT 37,650
+#define KV_SAFE_CLICK_RANGE 38,684
+#define KV_ZOOM_INCREMENT 39,714
+#define KV_LINE_WIDTH 40,745
+#define KV_NUM_COLORS 41,771
+#define KV_GAP_BETWEEN_TIMELINES 42,796
+#define KV_TIMELINE_START_X 43,831
+#define KV_NESTED_DECREASE_RATE 44,862
+  kmr_trace_event_start,48,945
+  kmr_trace_event_end,49,970
+  kmr_trace_event_map,50,993
+  kmr_trace_event_map_once,51,1016
+  kmr_trace_event_shuffle,52,1044
+  kmr_trace_event_reduce,53,1071
+  kmr_trace_event_sort,54,1097
+  kmr_trace_event_max,56,1124
+} kmr_trace_event_t;78,1656
+typedef struct kv_trace_entry 82,1692
+  double t;83,1724
+  int e;84,1736
+  long kvi_element_count;85,1745
+  long kvo_element_count;86,1771
+  int offset;87,1797
+} kv_trace_entry_t;88,1811
+typedef struct kv_trace 90,1832
+  int rank;91,1858
+  double start_t;92,1870
+  double end_t;93,1888
+  long n;94,1904
+  kv_trace_entry_t * e;95,1914
+  struct kv_trace * next;96,1938
+} kv_trace_t;97,1964
+typedef struct kv_trace_set 99,1979
+  double start_t;100,2009
+  double end_t;101,2027
+  double t_span;102,2043
+  int n;103,2060
+  kv_trace_t * head;104,2069
+  kv_trace_t * tail;105,2090
+} kv_trace_set_t;106,2111
+typedef struct kv_timeline_slash 109,2131
+  kv_trace_entry_t * e;110,2166
+  double x;111,2190
+  struct kv_timeline_slash * next;112,2202
+} kv_timeline_slash_t;113,2237
+typedef struct kv_timeline_box 115,2261
+  kv_trace_entry_t * start_e;116,2294
+  kv_trace_entry_t * end_e;117,2324
+  double x;118,2352
+  double w;119,2364
+  struct kv_timeline_box * child;120,2376
+  struct kv_timeline_box * next;121,2410
+  int focused;122,2443
+} kv_timeline_box_t;123,2458
+typedef struct kv_timeline 125,2480
+  kv_trace_t * trace;126,2509
+  double y;127,2531
+  double h;128,2543
+  kv_timeline_box_t * box;129,2555
+  kv_timeline_slash_t * slash;130,2582
+  struct kv_timeline * next;131,2613
+} kv_timeline_t;132,2642
+typedef struct kv_timeline_set 134,2660
+  kv_trace_set_t * TS;135,2693
+  int n;136,2716
+  kv_timeline_t * head;137,2725
+  kv_timeline_t * tail;138,2749
+} kv_timeline_set_t;139,2773
+typedef struct kv_viewport 142,2796
+  double vpw,143,2825
+  double vpw, vph;143,2825
+  GtkWidget * box;144,2844
+  GtkWidget * darea;145,2863
+  double x,146,2884
+  double x, y;146,2884
+  double zoom_ratio_x,147,2899
+  double zoom_ratio_x, zoom_ratio_y;147,2899
+  int drag_on;148,2936
+  double pressx,149,2951
+  double pressx, pressy;149,2951
+  double accdisx,150,2976
+  double accdisx, accdisy;150,2976
+  kv_timeline_box_t * last_hovered_box;151,3003
+} kv_viewport_t;152,3043
+typedef struct kv_gui 154,3061
+  GtkWidget * window;156,3105
+  GtkWidget * window_box;157,3127
+  GtkWidget * menubar;158,3153
+  GtkWidget * toolbar;159,3176
+  GtkWidget * main_box;160,3199
+  GtkWidget * left_sidebar;161,3223
+  GtkWidget * statusbar1;162,3251
+  GtkWidget * statusbar2;163,3277
+  GtkWidget * statusbar3;164,3303
+  GtkAccelGroup * accel_group;167,3350
+  GtkBuilder * builder;168,3383
+    GtkToolItem * toolbox;172,3438
+    GtkToolItem * infobox;173,3465
+  } ontoolbar;174,3492
+    GtkCheckMenuItem * toolbox;178,3538
+    GtkCheckMenuItem * infobox;179,3570
+  } onmenubar;180,3602
+  struct toolbox 183,3636
+    GtkWidget * sidebox;184,3655
+    GtkWidget * align_start;185,3680
+    GtkWidget * legend;186,3709
+  } toolbox;187,3733
+  struct infobox 188,3746
+    GtkWidget * sidebox;189,3765
+    GtkWidget * type;190,3790
+    GtkWidget * start_t;191,3812
+    GtkWidget * end_t;192,3837
+    GtkWidget * span;193,3860
+    GtkWidget * kvi_ne;194,3882
+    GtkWidget * kvo_ne;195,3906
+  } infobox;196,3930
+} kv_gui_t;197,3943
+typedef struct kv_global_state 199,3956
+  kv_gui_t GUI[GUI200,3989
+  kv_viewport_t VP[VP201,4008
+  kv_trace_set_t TS[TS202,4031
+  kv_timeline_set_t TL[TL203,4055
+  int align_start;204,4082
+  int toolbox_shown;205,4101
+  int infobox_shown;206,4122
+  int draw_legend;207,4143
+} kv_global_state_t;208,4162
+kv_swap_bytes(241,5082
+#define KV_ENDIAN_CHECKER 255,5510
+#define KV_BIG_ENDIAN 256,5547
+#define KV_LITTLE_ENDIAN 257,5578
+#define KV_GET_FIRST_BYTE(258,5609
+#define KV_IS_BIG_ENDIAN(259,5657
+#define KV_IS_LITTLE_ENDIAN(260,5725
+kv_trace_event_get_kind(263,5823

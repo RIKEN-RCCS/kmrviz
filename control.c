@@ -371,6 +371,16 @@ on_toolbox_align_start_toggled(GtkWidget * widget, _unused_ gpointer user_data) 
   kv_viewport_queue_draw(GS->VP);
 }
 
+static void
+on_toolbox_legend_toggled(GtkWidget * widget, _unused_ gpointer user_data) {
+  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
+    GS->draw_legend = 1;
+  } else {
+    GS->draw_legend = 0;
+  }
+  kv_viewport_queue_draw(GS->VP);
+}
+
 G_MODULE_EXPORT void
 on_menubar_file_exit_activated(_unused_ GtkMenuItem * menuitem, _unused_ gpointer user_data) {
   gtk_main_quit();

@@ -3,8 +3,8 @@
 kv_global_state_t GS[1];
 
 const char * const KV_COLORS[] =
-  {"red", "chocolate", "orange", "magenta", "cyan",
-   "gold", "blue", "lightyellow3", "maroon1", "yellowgreen",
+  {"red", "chocolate", "orange", "gold", "magenta", 
+   "cyan", "blue", "lightyellow3", "maroon1", "yellowgreen",
    "azure", "brown1", "burlywood1", "peachpuff", "aquamarine",
    "chartreuse", "skyblue", "burlywood", "cadetblue", "chocolate",
    "green", "cornflowerblue", "cornsilk4", "darkolivegreen1", "darkorange1",
@@ -240,6 +240,15 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(align_start), GS->align_start);
   g_signal_connect(G_OBJECT(align_start), "toggled", G_CALLBACK(on_toolbox_align_start_toggled), (void *) NULL);
 
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+
+  GtkWidget * legend = GUI->toolbox.legend = gtk_check_button_new_with_label("Legend");
+  gtk_box_pack_start(GTK_BOX(box), legend, FALSE, FALSE, 0);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(legend), GS->draw_legend);
+  g_signal_connect(G_OBJECT(legend), "toggled", G_CALLBACK(on_toolbox_legend_toggled), (void *) NULL);
+
   gtk_widget_show_all(sidebox);
   return sidebox;
 }
@@ -334,6 +343,7 @@ kv_global_state_init(kv_global_state_t * GS) {
   kv_gui_init(GS->GUI);
   kv_viewport_init(GS->VP);
   GS->align_start = 1;
+  GS->draw_legend = 1;
 }
 
 static void

@@ -78,7 +78,7 @@ static void
 kv_draw_box(cairo_t * cr, kv_viewport_t * VP, kv_timeline_t * tl, kv_timeline_box_t * box, double ratio) {
   if (!box) return;
   GdkRGBA color;
-  kv_lookup_color(box->start_e->e / 2, &color.red, &color.green, &color.blue, &color.alpha);
+  kv_lookup_color(box->start_e->e, &color.red, &color.green, &color.blue, &color.alpha);
 
   double x = box->x;
   double y = tl->y;
@@ -114,11 +114,42 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
   cairo_rectangle(cr, 0, 0, VP->vpw, VP->vph);
   cairo_clip(cr);
 
+  /* Legend */
+  if (GS->draw_legend) {
+    double h = 2 * KV_RADIUS;
+    double vgap = KV_GAP_BETWEEN_TIMELINES;
+    double w = h * 2;
+    double textw = 80;
+    double x, y;
+    x = VP->vpw - KV_MARGIN_WHEN_ZOOMFIT - textw - w;
+    int n = kmr_trace_event_max - kmr_trace_event_map;
+    y = VP->vph - KV_MARGIN_WHEN_ZOOMFIT - n * (h + vgap);
+    cairo_select_font_face(cr, "Courier", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 12);
+    kmr_trace_event_t ev;
+    for (ev = kmr_trace_event_map; ev < kmr_trace_event_max; ev++) {
+      GdkRGBA color;
+      kv_lookup_color(ev, &color.red, &color.green, &color.blue, &color.alpha);
+      cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
+      cairo_rectangle(cr, x, y, w, h);
+      cairo_fill(cr);
+      
+      char * name = kv_trace_event_get_kind(ev);
+      cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+      cairo_move_to(cr, x + w + 5, y + (h / 2) * 1.3);
+      cairo_show_text(cr, name);
+      
+      y += h + vgap;
+    }
+  }
+  
+  /* Cairo transform */
   cairo_translate(cr, VP->x, VP->y);
   cairo_scale(cr, VP->zoom_ratio_x, VP->zoom_ratio_y);
 
-  /* Rank numbers */
+  /* Ranks */
   {
+    /* Titles */
     cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
     cairo_select_font_face(cr, "Courier", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     cairo_set_font_size(cr, 12);

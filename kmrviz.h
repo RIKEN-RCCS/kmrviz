@@ -52,6 +52,8 @@ typedef enum {
   kmr_trace_event_shuffle,
   kmr_trace_event_reduce,
   kmr_trace_event_sort,
+  
+  kmr_trace_event_max,
 
   /*
   kmr_trace_event_map_start,
@@ -181,6 +183,7 @@ typedef struct kv_gui {
   struct toolbox {
     GtkWidget * sidebox;
     GtkWidget * align_start;
+    GtkWidget * legend;
   } toolbox;
   struct infobox {
     GtkWidget * sidebox;
@@ -201,6 +204,7 @@ typedef struct kv_global_state {
   int align_start;
   int toolbox_shown;
   int infobox_shown;
+  int draw_legend;
 } kv_global_state_t;
 
 
@@ -272,6 +276,8 @@ kv_trace_event_get_kind(kmr_trace_event_t e) {
     return "reduce";
   case kmr_trace_event_sort:
     return "sort";
+  case kmr_trace_event_max:
+    return "max";
   }
   return NULL;
 }

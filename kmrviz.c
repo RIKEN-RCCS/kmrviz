@@ -166,6 +166,8 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
       GtkToolItem * btn = GUI->ontoolbar.replaybox = gtk_toggle_tool_button_new();
       gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn, -1);
       gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn), "media-playback-start");
+      //gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn), GTK_STOCK_MEDIA_PLAY);
+      //gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn), "_Play");
       gtk_widget_set_tooltip_text(GTK_WIDGET(btn), "Show info box (Ctrl+R)");
       gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn), FALSE);
       g_signal_connect(G_OBJECT(btn), "toggled", G_CALLBACK(on_toolbar_replaybox_button_toggled), NULL);
@@ -273,9 +275,12 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
   g_object_ref(sidebox);
 
+  GtkWidget * scrolled = gtk_scrolled_window_new(NULL, NULL);
+  gtk_container_add(GTK_CONTAINER(sidebox), scrolled);
+  gtk_widget_set_size_request(GTK_WIDGET(scrolled), 200, 150);
+  
   GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
-  gtk_widget_set_size_request(GTK_WIDGET(sidebox_box), 200, -1);
-  gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
+  gtk_container_add(GTK_CONTAINER(scrolled), sidebox_box);
   gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
 
   GtkWidget * box;

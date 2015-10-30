@@ -2,8 +2,7 @@
 kmrviz
 ======
 
-KMRViz is a visualization tool intended to visualize a trace of a KMR program
-as timelines of nodes (ranks).
+KMRViz is a visualization tool that visualizes traces of a KMR (MapReduce for K supercomputer) program as timelines of processes (nodes/ranks).
 
 =============
 Prerequisites
@@ -11,5 +10,5 @@ Prerequisites
 
 KMRViz is dependant on:
 
-- libgtk (GTK+): a GUI toolkit
+- GTK+3 library - a cross-platform GUI toolkit: although GTK+ 3.0 is almost ok a version >= 3.10 is recommended (GTK+ 2 is not compatible)
   Ubuntu 14.04: libgtk-3-dev package

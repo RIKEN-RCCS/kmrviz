@@ -198,6 +198,20 @@ kv_viewport_draw(kv_viewport_t * VP, cairo_t * cr) {
     }
   }
 
+  /* Current time stick */
+  if (GS->replay_enable) {
+    double x = KV_TIMELINE_START_X + kv_scale_down(NULL, GS->current_time + TL->TS->start_t);
+    double y1 = - KV_RADIUS;
+    double y2 = TL->n * (2 * KV_RADIUS + KV_GAP_BETWEEN_TIMELINES) + 2 * KV_RADIUS;
+    cairo_save(cr);
+    cairo_move_to(cr, x, y1);
+    cairo_line_to(cr, x, y2);
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.8);
+    cairo_set_line_width(cr, KV_LINE_WIDTH / VP->zoom_ratio_x);
+    cairo_stroke(cr);
+    cairo_restore(cr);
+  }
+
   cairo_restore(cr);
 }
 

@@ -119,6 +119,23 @@ kv_toggle_infobox(int enable) {
   }
 }
 
+void
+kv_toggle_replaybox(int enable) {
+  if (GS->replaybox_shown == enable) return;
+  kv_gui_t * GUI = GS->GUI;
+  GtkWidget * sidebox = kv_gui_get_replaybox_sidebox(GUI);
+  GS->replaybox_shown = enable;
+  if (enable) {
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.replaybox), TRUE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.replaybox), TRUE);
+    gtk_box_pack_start(GTK_BOX(GS->GUI->left_sidebar), sidebox, FALSE, FALSE, 0);
+  } else {
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(GUI->ontoolbar.replaybox), FALSE);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(GUI->onmenubar.replaybox), FALSE);
+    gtk_container_remove(GTK_CONTAINER(GS->GUI->left_sidebar), sidebox);
+  }
+}
+
 static kv_timeline_box_t *
 kv_find_box_(kv_timeline_t * tl, kv_timeline_box_t * box, double x, double y, double ratio) {
   if (!box || x < box->x)
@@ -153,6 +170,26 @@ kv_find_box(kv_timeline_set_t * TL, double x, double y) {
     tl = tl->next;
   }
   return NULL;
+}
+
+int
+kv_count_ranks_with_boxes(double time) {
+  return 0;
+}
+
+void
+kv_replay_set_current_time(double value) {
+  if (value < 0 || value > GS->TS->t_span || value == GS->current_time)
+    return;
+  GS->current_time = value;
+  gtk_range_set_value(GTK_RANGE(GS->GUI->replaybox.scale), value);
+  char s[KV_STRING_LENGTH];
+  sprintf(s, "%.0lf", value);
+  gtk_entry_set_text(GTK_ENTRY(GS->GUI->replaybox.entry), s);
+  kv_viewport_queue_draw(GS->VP);
+
+  sprintf(s, "Ranks with boxes: %d", kv_count_ranks_with_boxes(value));
+  gtk_label_set_text(GTK_LABEL(GS->GUI->replaybox.filledranks), s);
 }
 
 /****************** end of Processes *******************************/
@@ -195,6 +232,16 @@ on_toolbar_infobox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unuse
     kv_toggle_infobox(1);
   } else {
     kv_toggle_infobox(0);
+  }
+}
+
+static void
+on_toolbar_replaybox_button_toggled(_unused_ GtkToggleToolButton * toolbtn, _unused_ gpointer user_data) {
+  gboolean active = gtk_toggle_tool_button_get_active(GTK_TOGGLE_TOOL_BUTTON(toolbtn));
+  if (active) {
+    kv_toggle_replaybox(1);
+  } else {
+    kv_toggle_replaybox(0);
   }
 }
 
@@ -381,6 +428,30 @@ on_toolbox_legend_toggled(GtkWidget * widget, _unused_ gpointer user_data) {
   kv_viewport_queue_draw(GS->VP);
 }
 
+static void
+on_replaybox_enable_toggled(GtkWidget * widget, _unused_ gpointer user_data) {
+  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
+    GS->replay_enable = 1;
+  } else {
+    GS->replay_enable = 0;
+  }
+  kv_viewport_queue_draw(GS->VP);
+}
+
+void
+on_replaybox_scale_value_changed(GtkRange * range, _unused_ gpointer user_data) {
+  double value = gtk_range_get_value(range);
+  kv_replay_set_current_time(value);
+}
+
+void
+on_replaybox_current_time_entry_activated(GtkEntry * entry, _unused_ gpointer user_data) {
+  const char * str = gtk_entry_get_text(entry);
+  double value = atof(str);
+  kv_replay_set_current_time(value);
+}
+
+
 G_MODULE_EXPORT void
 on_menubar_file_exit_activated(_unused_ GtkMenuItem * menuitem, _unused_ gpointer user_data) {
   gtk_main_quit();
@@ -403,6 +474,16 @@ on_menubar_view_infobox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_
     kv_toggle_infobox(1);
   } else {
     kv_toggle_infobox(0);
+  }
+}
+
+G_MODULE_EXPORT void
+on_menubar_view_replaybox_activated(_unused_ GtkCheckMenuItem * menuitem, _unused_ gpointer user_data) {
+  gboolean active = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem));
+  if (active) {
+    kv_toggle_replaybox(1);
+  } else {
+    kv_toggle_replaybox(0);
   }
 }
 

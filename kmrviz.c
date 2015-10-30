@@ -124,6 +124,10 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     GUI->onmenubar.infobox = GTK_CHECK_MENU_ITEM(item);
     gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_i, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
     
+    item = GTK_WIDGET(gtk_builder_get_object(builder, "replaybox"));
+    GUI->onmenubar.replaybox = GTK_CHECK_MENU_ITEM(item);
+    gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_r, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    
     item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_hor"));
     gtk_widget_add_accelerator(item, "activate", accel_group, GDK_KEY_h, 0, GTK_ACCEL_VISIBLE); 
     item = GTK_WIDGET(gtk_builder_get_object(builder, "zoomfit_ver"));
@@ -139,22 +143,32 @@ kv_gui_get_main_window(kv_gui_t * GUI) {
     
     /* toolbox button */
     {
-      GtkToolItem * btn_settings = GUI->ontoolbar.toolbox = gtk_toggle_tool_button_new();
-      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_settings, -1);
-      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_settings), "preferences-system");
-      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_settings), "Show toolbox (Ctrl+T)");
-      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn_settings), FALSE);
-      g_signal_connect(G_OBJECT(btn_settings), "toggled", G_CALLBACK(on_toolbar_toolbox_button_toggled), NULL);
+      GtkToolItem * btn = GUI->ontoolbar.toolbox = gtk_toggle_tool_button_new();
+      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn, -1);
+      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn), "preferences-system");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn), "Show toolbox (Ctrl+T)");
+      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn), FALSE);
+      g_signal_connect(G_OBJECT(btn), "toggled", G_CALLBACK(on_toolbar_toolbox_button_toggled), NULL);
     }
 
     /* infobox button */
     {
-      GtkToolItem * btn_info = GUI->ontoolbar.infobox = gtk_toggle_tool_button_new();
-      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn_info, -1);
-      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn_info), "dialog-info");
-      gtk_widget_set_tooltip_text(GTK_WIDGET(btn_info), "Show info box (Ctrl+I)");
-      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn_info), FALSE);
-      g_signal_connect(G_OBJECT(btn_info), "toggled", G_CALLBACK(on_toolbar_infobox_button_toggled), NULL);
+      GtkToolItem * btn = GUI->ontoolbar.infobox = gtk_toggle_tool_button_new();
+      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn, -1);
+      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn), "dialog-info");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn), "Show info box (Ctrl+I)");
+      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn), FALSE);
+      g_signal_connect(G_OBJECT(btn), "toggled", G_CALLBACK(on_toolbar_infobox_button_toggled), NULL);
+    }
+
+    /* replaybox button */
+    {
+      GtkToolItem * btn = GUI->ontoolbar.replaybox = gtk_toggle_tool_button_new();
+      gtk_toolbar_insert(GTK_TOOLBAR(toolbar), btn, -1);
+      gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(btn), "media-playback-start");
+      gtk_widget_set_tooltip_text(GTK_WIDGET(btn), "Show info box (Ctrl+R)");
+      gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(btn), FALSE);
+      g_signal_connect(G_OBJECT(btn), "toggled", G_CALLBACK(on_toolbar_replaybox_button_toggled), NULL);
     }
 
     /* zoomfit button */
@@ -225,7 +239,7 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
   gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
   g_object_ref(sidebox);  
 
-  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
   gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
   gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
 
@@ -233,7 +247,6 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
   
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
 
   GtkWidget * align_start = GUI->toolbox.align_start = gtk_check_button_new_with_label("Align start times");
   gtk_box_pack_start(GTK_BOX(box), align_start, FALSE, FALSE, 0);
@@ -242,7 +255,6 @@ kv_gui_get_toolbox_sidebox(kv_gui_t * GUI) {
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
 
   GtkWidget * legend = GUI->toolbox.legend = gtk_check_button_new_with_label("Legend");
   gtk_box_pack_start(GTK_BOX(box), legend, FALSE, FALSE, 0);
@@ -261,7 +273,7 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
   g_object_ref(sidebox);
 
-  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
   gtk_widget_set_size_request(GTK_WIDGET(sidebox_box), 200, -1);
   gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
   gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
@@ -270,44 +282,115 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
   GtkWidget * type = GUI->infobox.type = gtk_label_new("Kind:");
   gtk_box_pack_start(GTK_BOX(box), type, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
   GtkWidget * start_t = GUI->infobox.start_t = gtk_label_new("Start time:");
   gtk_label_set_selectable(GTK_LABEL(start_t), TRUE);
   gtk_box_pack_start(GTK_BOX(box), start_t, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
   GtkWidget * end_t = GUI->infobox.end_t = gtk_label_new("End time:");
   gtk_label_set_selectable(GTK_LABEL(end_t), TRUE);
   gtk_box_pack_start(GTK_BOX(box), end_t, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
   GtkWidget * span = GUI->infobox.span = gtk_label_new("Span:");
   gtk_label_set_selectable(GTK_LABEL(span), TRUE);
   gtk_box_pack_start(GTK_BOX(box), span, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
   GtkWidget * kvi_ne = GUI->infobox.kvi_ne = gtk_label_new("KVI:");
   gtk_label_set_selectable(GTK_LABEL(kvi_ne), TRUE);
   gtk_box_pack_start(GTK_BOX(box), kvi_ne, FALSE, FALSE, 0);
 
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
   gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
-  gtk_container_set_border_width(GTK_CONTAINER(box), 3);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
   GtkWidget * kvo_ne = GUI->infobox.kvo_ne = gtk_label_new("KVO:");
   gtk_label_set_selectable(GTK_LABEL(kvo_ne), TRUE);
   gtk_box_pack_start(GTK_BOX(box), kvo_ne, FALSE, FALSE, 0);
+
+  gtk_widget_show_all(sidebox);
+  return sidebox;
+}
+
+GtkWidget *
+kv_gui_get_replaybox_sidebox(kv_gui_t * GUI) {
+  if (GUI->replaybox.sidebox)
+    return GUI->replaybox.sidebox;
+  GtkWidget * sidebox = GUI->replaybox.sidebox = gtk_frame_new("Replay");
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox), 5);
+  g_object_ref(sidebox);
+
+  GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+  gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
+  gtk_widget_set_size_request(GTK_WIDGET(sidebox_box), 200, -1);
+  gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
+
+  GtkWidget * box;
+  
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  GtkWidget * enable = GUI->replaybox.enable = gtk_check_button_new_with_label("Enable");
+  gtk_box_pack_start(GTK_BOX(box), enable, FALSE, FALSE, 0);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(enable), GS->replay_enable);
+  g_signal_connect(G_OBJECT(enable), "toggled", G_CALLBACK(on_replaybox_enable_toggled), (void *) NULL);
+
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  GtkWidget * scale = GUI->replaybox.scale = gtk_scale_new(GTK_ORIENTATION_HORIZONTAL, NULL);
+  gtk_box_pack_start(GTK_BOX(box), scale, TRUE, TRUE, 0);
+  gtk_scale_set_draw_value(GTK_SCALE(scale), FALSE);
+  gtk_range_set_range(GTK_RANGE(scale), 0.0, GS->TS->t_span);
+  g_signal_connect(G_OBJECT(scale), "value-changed", G_CALLBACK(on_replaybox_scale_value_changed), (void *) NULL);
+  
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  GtkWidget * entry;
+  entry= GUI->replaybox.entry = gtk_entry_new();
+  gtk_box_pack_start(GTK_BOX(box), entry, FALSE, FALSE, 0);
+  gtk_entry_set_width_chars(GTK_ENTRY(entry), 12);
+  gtk_entry_set_text(GTK_ENTRY(entry), "0");
+  gtk_widget_set_tooltip_text(entry, "Current time");
+  g_signal_connect(G_OBJECT(entry), "activate", G_CALLBACK(on_replaybox_current_time_entry_activated), (void *) NULL);
+  /*
+  entry = GUI->replaybox.time_step_entry = gtk_entry_new();
+  gtk_box_pack_start(GTK_BOX(box), entry, FALSE, FALSE, 0);
+  gtk_entry_set_width_chars(GTK_ENTRY(entry), 9);
+  gtk_widget_set_tooltip_text(entry, "Time step");
+  //g_signal_connect(G_OBJECT(entry), "activate", G_CALLBACK(on_replay_sidebox_time_step_entry_activated), (void *) NULL);
+
+  GtkWidget * play_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), play_box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(play_box), 5);
+  GtkWidget * button;
+  button = gtk_button_new_with_label("Play");
+  gtk_box_pack_end(GTK_BOX(play_box), button, FALSE, FALSE, 0);
+  button = gtk_button_new_with_label("Next");
+  gtk_box_pack_end(GTK_BOX(play_box), button, FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(on_replay_sidebox_next_button_clicked), (void *) NULL);
+  button = gtk_button_new_with_label("Prev");
+  gtk_box_pack_end(GTK_BOX(play_box), button, FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(on_replay_sidebox_prev_button_clicked), (void *) NULL);
+  */
+  
+  box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+  gtk_box_pack_start(GTK_BOX(sidebox_box), box, FALSE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 2);
+  GtkWidget * filledranks = GUI->replaybox.filledranks = gtk_label_new("Ranks with boxes: ");
+  gtk_label_set_selectable(GTK_LABEL(filledranks), TRUE);
+  gtk_box_pack_start(GTK_BOX(box), filledranks, FALSE, FALSE, 0);
 
   gtk_widget_show_all(sidebox);
   return sidebox;
@@ -366,17 +449,19 @@ kv_read_trace_txt(char * filename, kv_trace_t * trace) {
     fprintf(stderr, "fopen: %d\n", errno);
     return 0;
   }
-  printf("Trace %s:\n", filename);
+  //printf("Trace %s:\n", filename);
 
   fscanf(fs, "rank: %d\n", &trace->rank);
   fscanf(fs, "start_t: %lf\n", &trace->start_t);
   fscanf(fs, "end_t: %lf\n", &trace->end_t);
   fscanf(fs, "n: %ld\n", &trace->n);
+  /*
   printf("  rank=%d\n"
          "  start_t=%.0lf\n"
          "  end_t  =%.0lf\n"
          "  n=%ld\n",
          trace->rank, trace->start_t, trace->end_t, trace->n);
+  */
   trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
   int i;
   for (i = 0; i < trace->n; i++) {
@@ -402,10 +487,12 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
     fprintf(stderr, "fstat: %d\n", errno);
     return 0;    
   }
+  /*
   printf("Trace %s:\n", filename);
   printf("  st_size = %ld bytes (%0.0lfMB)\n",
          (long) statbuf->st_size,
          ((double) statbuf->st_size) / (1024.0 * 1024.0));
+  */
 
   void * dp = mmap(0, statbuf->st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (!dp) {
@@ -454,9 +541,11 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
   }
   dp += sizeof(long);
 
-  
+
+  /*
   printf("  rank=%d, t=(%.0lf,%.0lf), n=%ld\n",
          trace->rank, trace->start_t, trace->end_t, trace->n);
+  */
   
   /* e */
   trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );

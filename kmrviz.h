@@ -171,12 +171,14 @@ typedef struct kv_gui {
   struct {
     GtkToolItem * toolbox;
     GtkToolItem * infobox;
+    GtkToolItem * replaybox;
   } ontoolbar;
 
   /* On menubar */
   struct {
     GtkCheckMenuItem * toolbox;
     GtkCheckMenuItem * infobox;
+    GtkCheckMenuItem * replaybox;
   } onmenubar;
 
   /* Sideboxes */
@@ -194,6 +196,14 @@ typedef struct kv_gui {
     GtkWidget * kvi_ne;
     GtkWidget * kvo_ne;
   } infobox;
+  struct replaybox {
+    GtkWidget * sidebox;
+    GtkWidget * enable;
+    GtkWidget * scale;
+    GtkWidget * entry;
+    GtkWidget * time_step_entry;
+    GtkWidget * filledranks;
+  } replaybox;
 } kv_gui_t;
 
 typedef struct kv_global_state {
@@ -204,7 +214,10 @@ typedef struct kv_global_state {
   int align_start;
   int toolbox_shown;
   int infobox_shown;
+  int replaybox_shown;
   int draw_legend;
+  int replay_enable;
+  double current_time;
 } kv_global_state_t;
 
 
@@ -224,6 +237,7 @@ void kv_gui_init(kv_gui_t *);
 GtkWidget * kv_gui_get_main_window(kv_gui_t *);
 GtkWidget * kv_gui_get_toolbox_sidebox(kv_gui_t *);
 GtkWidget * kv_gui_get_infobox_sidebox(kv_gui_t *);
+GtkWidget * kv_gui_get_replaybox_sidebox(kv_gui_t *);
 void kv_gui_update_infobox(kv_timeline_box_t *);
 
 void kv_global_state_init(kv_global_state_t *);

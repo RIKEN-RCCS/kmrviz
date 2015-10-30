@@ -174,7 +174,18 @@ kv_find_box(kv_timeline_set_t * TL, double x, double y) {
 
 int
 kv_count_ranks_with_boxes(double time) {
-  return 0;
+  time += GS->TS->start_t;
+  int count = 0;
+  kv_timeline_t * tl = GS->TL->head;
+  while (tl) {
+    kv_timeline_box_t * b = tl->box;
+    while (b && b->end_e->t < time)
+      b = b->next;
+    if (b && b->end_e->t >= time && b->start_e->t <= time)
+      count++;
+    tl = tl->next;
+  }
+  return count;
 }
 
 void

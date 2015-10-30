@@ -3,14 +3,14 @@
 kv_global_state_t GS[1];
 
 const char * const KV_COLORS[] =
-  {"orange", "magenta", "cyan", "gold", "blue",
+  {"red", "chocolate", "orange", "magenta", "cyan",
+   "gold", "blue", "lightyellow3", "maroon1", "yellowgreen",
    "azure", "brown1", "burlywood1", "peachpuff", "aquamarine",
    "chartreuse", "skyblue", "burlywood", "cadetblue", "chocolate",
    "green", "cornflowerblue", "cornsilk4", "darkolivegreen1", "darkorange1",
    "khaki3", "lavenderblush2", "lemonchiffon1", "lightblue1", "lightcyan",
    "lightgoldenrod", "lightgoldenrodyellow", "lightpink2", "lightsalmon2", "lightskyblue1",
-   "lightsteelblue3", "lightyellow3", "maroon1", "yellowgreen", "red",
-   "coral"
+   "lightsteelblue3", "coral"
   };
 
 #include "control.c"
@@ -253,7 +253,7 @@ kv_gui_get_infobox_sidebox(kv_gui_t * GUI) {
   g_object_ref(sidebox);
 
   GtkWidget * sidebox_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-  gtk_widget_set_size_request(GTK_WIDGET(sidebox_box), 190, -1);
+  gtk_widget_set_size_request(GTK_WIDGET(sidebox_box), 200, -1);
   gtk_container_add(GTK_CONTAINER(sidebox), sidebox_box);
   gtk_container_set_border_width(GTK_CONTAINER(sidebox_box), 3);
 
@@ -370,7 +370,8 @@ kv_read_trace_txt(char * filename, kv_trace_t * trace) {
   trace->e = (kv_trace_entry_t *) malloc( trace->n * sizeof(kv_trace_entry_t) );
   int i;
   for (i = 0; i < trace->n; i++) {
-    fscanf(fs, "event %d at t=%lf, element count=(%ld,%ld)\n", &(trace->e[i].e), &(trace->e[i].t), &(trace->e[i].kvi_element_count), &(trace->e[i].kvo_element_count));
+    kv_trace_entry_t * e = &trace->e[i];
+    fscanf(fs, "event %d at t=%lf, element count=(%ld,%ld), offset to pair: %d\n", &(e->e), &(e->t), &(e->kvi_element_count), &(e->kvo_element_count), &(e->offset));
     if (i == 0 || i == trace->n - 1)
       printf("  e[%d]=(%.0lf,%d)\n",
              i, trace->e[i].t, trace->e[i].e);
@@ -477,6 +478,13 @@ kv_read_trace_bin(char * filename, kv_trace_t * trace) {
       trace->e[i].e = *((int *) dp);
     } else {
       kv_swap_bytes(dp, &(trace->e[i].e), sizeof(int));
+    }
+    dp += sizeof(int);
+    /* e.offset */
+    if (!do_swap_byte) {
+      trace->e[i].offset = *((int *) dp);
+    } else {
+      kv_swap_bytes(dp, &(trace->e[i].offset), sizeof(int));
     }
     dp += sizeof(int);
     /*
@@ -665,13 +673,27 @@ kv_build_timelines(kv_trace_set_t * TS, kv_timeline_set_t * TL) {
     kv_trace_entry_t * e;
     e = (kv_trace_entry_t *) malloc( sizeof(kv_trace_entry_t) );
     e->t = trace->start_t;
-    e->e = kmr_trace_event_trace_start;
+    e->e = kmr_trace_event_start;
     kv_timeline_insert_slash(tl, e);
     e = (kv_trace_entry_t *) malloc( sizeof(kv_trace_entry_t) );
     e->t = trace->end_t;
-    e->e = kmr_trace_event_trace_end;
+    e->e = kmr_trace_event_end;
     kv_timeline_insert_slash(tl, e);
-    
+
+    int i;
+    for (i = 0; i < trace->n; i++) {
+      kv_trace_entry_t * e = &trace->e[i];
+      if (e->offset > 0) {
+        assert(i + e->offset < trace->n);
+        kv_trace_entry_t * ee = &trace->e[i + e->offset];
+        kv_insert_box(&(tl->box), NULL, e, ee);
+        assert(ee->offset == 0);
+        ee->offset = - e->offset;
+      } else if (e->offset == 0) {
+        kv_timeline_insert_slash(tl, e);
+      }
+    }
+#if 0    
     int i = 0; /* close */
     while (i < trace->n) {
       while (trace->e[i].e % 2 != 1 && i < trace->n)
@@ -687,6 +709,7 @@ kv_build_timelines(kv_trace_set_t * TS, kv_timeline_set_t * TL) {
         }
       }
     }
+#endif
 
     kv_collect_boxes(tl->box);
     

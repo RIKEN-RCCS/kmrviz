@@ -38,15 +38,24 @@
 #define KV_SAFE_CLICK_RANGE 2
 #define KV_ZOOM_INCREMENT 1.20
 #define KV_LINE_WIDTH 2.0
-#define KV_NUM_COLORS 36
+#define KV_NUM_COLORS 37
 #define KV_GAP_BETWEEN_TIMELINES 2
 #define KV_TIMELINE_START_X 75
 #define KV_NESTED_DECREASE_RATE 0.9
 
 /*-- Copy from kmrtrace.h --*/
 typedef enum {
-  kmr_trace_event_map_start, /* map phase starts */
-  kmr_trace_event_map_end, /* map phase ends */
+  kmr_trace_event_start,
+  kmr_trace_event_end,
+  kmr_trace_event_map,
+  kmr_trace_event_map_once,
+  kmr_trace_event_shuffle,
+  kmr_trace_event_reduce,
+  kmr_trace_event_sort,
+
+  /*
+  kmr_trace_event_map_start,
+  kmr_trace_event_map_end,
   kmr_trace_event_shuffle_start,
   kmr_trace_event_shuffle_end,
   kmr_trace_event_reduce_start,
@@ -58,7 +67,7 @@ typedef enum {
   
   kmr_trace_event_trace_start,
   kmr_trace_event_trace_end,
-  /*
+  
   kmr_trace_event_mapper_start,
   kmr_trace_event_mapper_end,
   kmr_trace_event_reducer_start,
@@ -73,6 +82,7 @@ typedef struct kv_trace_entry {
   int e;
   long kvi_element_count;
   long kvo_element_count;
+  int offset;
 } kv_trace_entry_t;
 
 typedef struct kv_trace {
@@ -248,21 +258,50 @@ kv_swap_bytes(void * input, void * output, int bytes) {
 _static_unused_ char *
 kv_trace_event_get_kind(kmr_trace_event_t e) {
   switch (e) {
+  case kmr_trace_event_start:
+    return "trace start";
+  case kmr_trace_event_end:
+    return "trace end";
+  case kmr_trace_event_map:
+    return "map";
+  case kmr_trace_event_map_once:
+    return "map_once";
+  case kmr_trace_event_shuffle:
+    return "shuffle";
+  case kmr_trace_event_reduce:
+    return "reduce";
+  case kmr_trace_event_sort:
+    return "sort";
+  }
+  return NULL;
+}
+
+/*
+_static_unused_ char *
+kv_trace_event_get_kind(kmr_trace_event_t e) {
+  switch (e) {
+  case kmr_trace_event_map:
   case kmr_trace_event_map_start:
   case kmr_trace_event_map_end:
     return "map";
+  case kmr_trace_event_shuffle:
   case kmr_trace_event_shuffle_start:
   case kmr_trace_event_shuffle_end:
     return "shuffle";
+  case kmr_trace_event_reduce:
   case kmr_trace_event_reduce_start:
   case kmr_trace_event_reduce_end:
     return "reduce";
+  case kmr_trace_event_map_once:
   case kmr_trace_event_map_once_start:
   case kmr_trace_event_map_once_end:
     return "map_once";
+  case kmr_trace_event_sort:
   case kmr_trace_event_sort_start:
   case kmr_trace_event_sort_end:
     return "sort";
+  case kmr_trace_event_start:
+  case kmr_trace_event_end:
   case kmr_trace_event_trace_start:
   case kmr_trace_event_trace_end:
     return "trace";
@@ -287,8 +326,17 @@ kv_trace_event_get_type(kmr_trace_event_t e) {
   case kmr_trace_event_map_once_end:
   case kmr_trace_event_sort_end:
     return "end";
+  case kmr_trace_event_start:
+  case kmr_trace_event_end:
+  case kmr_trace_event_map:
+  case kmr_trace_event_map_once:
+  case kmr_trace_event_shuffle:
+  case kmr_trace_event_reduce:
+  case kmr_trace_event_sort:
+    return "none";
   }
   return NULL;
 }
+*/
 
 #endif /* _KMRVIZ_H */

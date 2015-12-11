@@ -52,6 +52,7 @@ typedef enum {
   kmr_trace_event_shuffle,
   kmr_trace_event_reduce,
   kmr_trace_event_sort,
+  kmr_trace_event_replicate,
   
   kmr_trace_event_max,
 
@@ -290,6 +291,8 @@ kv_trace_event_get_kind(kmr_trace_event_t e) {
     return "reduce";
   case kmr_trace_event_sort:
     return "sort";
+  case kmr_trace_event_replicate:
+    return "replicate";
   case kmr_trace_event_max:
     return "max";
   }
